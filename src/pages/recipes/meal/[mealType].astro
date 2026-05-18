@@ -1,0 +1,87 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../../../components/BaseHead.astro';
+import Footer from '../../../components/Footer.astro';
+import Header from '../../../components/Header.astro';
+
+export async function getStaticPaths() {
+	const allRecipes = await getCollection('recipes');
+	const mealTypes = [...new Set(allRecipes.map(r => r.data.mealType).filter(Boolean))] as string[];
+
+	return mealTypes.map((mealType) => ({
+		params: { mealType },
+		props: { mealType, allRecipes },
+	}));
+}
+
+interface Props {
+	mealType: string;
+	allRecipes: any[];
+}
+
+const { mealType, allRecipes } = Astro.props;
+const recipes = allRecipes.filter(r => r.data.mealType === mealType);
+
+const mealTypeLabel = mealType.charAt(0).toUpperCase() + mealType.slice(1);
+---
+
+<html lang="en">
+	<head>
+		<BaseHead title={`${mealTypeLabel} Recipes`} description={`Browse all ${mealTypeLabel} recipes`} />
+	</head>
+	<body class="bg-base-100 text-base-content selection:bg-primary/20">
+		<Header />
+		<main class="min-h-screen">
+			<div class="container mx-auto px-6 py-16 lg:py-24 space-y-24">
+				{/* Header */}
+				<div class="border-b border-base-300 pb-12">
+					<a href="/recipes" class="text-xs uppercase tracking-widest font-bold text-primary hover:text-base-content transition-colors">← Back to Index</a>
+					<h1 class="mt-8 text-5xl lg:text-6xl font-bold font-serif leading-[0.9] tracking-tight">{mealTypeLabel} Recipes</h1>
+					<p class="mt-8 text-2xl text-base-content/60 font-serif italic">
+						{recipes.length} {recipes.length === 1 ? 'recipe' : 'recipes'} in our collection.
+					</p>
+				</div>
+
+				{/* Recipe Grid */}
+				{recipes.length > 0 ? (
+					<div class="grid gap-12 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-base-300">
+						{recipes.map((recipe) => (
+							<a
+								href={`/recipe/${recipe.id}`}
+								class="group block md:px-8 first:pl-0 last:pr-0 py-8 md:py-0 transition-colors hover:bg-base-200/30"
+							>
+								<div>
+									<h3 class="text-2xl font-bold font-serif group-hover:text-primary transition-colors leading-tight mb-3">{recipe.data.title}</h3>
+									<p class="text-sm text-base-content/70 font-serif italic line-clamp-2">{recipe.data.description}</p>
+									<div class="mt-6 flex flex-wrap gap-2">
+										{recipe.data.cuisine && (
+											<span class="border border-base-300 text-[10px] font-bold uppercase tracking-widest px-3 py-1 text-base-content/60">{recipe.data.cuisine}</span>
+										)}
+										{recipe.data.difficulty && (
+											<span class="border border-base-300 text-[10px] font-bold uppercase tracking-widest px-3 py-1 text-base-content/60 capitalize">{recipe.data.difficulty}</span>
+										)}
+									</div>
+									{recipe.data.rating && (
+										<div class="mt-6 pt-6 border-t border-base-300 flex items-center gap-1.5">
+											<span class="text-primary font-bold">
+												<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+													<path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+												</svg>
+											</span>
+											<span class="text-xs font-bold uppercase tracking-widest text-base-content/50">{recipe.data.rating}</span>
+										</div>
+									)}
+								</div>
+							</a>
+						))}
+					</div>
+				) : (
+					<div class="border border-dashed border-base-300 py-24 text-center">
+						<p class="text-xl font-serif italic text-base-content/50">No recipes found for {mealTypeLabel}.</p>
+					</div>
+				)}
+			</div>
+		</main>
+		<Footer />
+	</body>
+</html>

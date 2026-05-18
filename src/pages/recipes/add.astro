@@ -1,0 +1,30 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import RecipeGenerator from '../../components/RecipeGenerator.jsx';
+---
+
+<html lang="en">
+	<head>
+		<BaseHead title="Recipe Generator | Admin" description="Generate recipe markdown files for Chef's Hand." />
+	</head>
+	<body class="bg-base-100 text-base-content selection:bg-primary/20">
+		<Header />
+		<main class="min-h-screen">
+			<div class="container mx-auto px-6 py-16 lg:py-24 space-y-16">
+				{/* Header */}
+				<div class="border-b border-base-300 pb-12">
+					<p class="text-[10px] uppercase tracking-[0.4em] font-bold text-primary mb-4">Admin Dashboard</p>
+					<h1 class="text-5xl lg:text-6xl font-bold font-serif leading-[0.9] tracking-tight">Recipe Generator</h1>
+					<p class="mt-8 text-2xl text-base-content/60 font-serif italic max-w-2xl">
+						Craft your next culinary masterpiece. Fill out the form below to generate a perfectly formatted Markdown file.
+					</p>
+				</div>
+
+				<RecipeGenerator client:load />
+			</div>
+		</main>
+		<Footer />
+	</body>
+</html>

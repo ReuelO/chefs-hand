@@ -1,8 +1,16 @@
 ---
+import { getCollection, getEntry, render } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
-import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
+import Header from '../components/Header.astro';
+import SousChef from '../components/SousChef.jsx';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+
+const allRecipes = await getCollection('recipes');
+const featuredRecipes = allRecipes.filter(r => r.data.featured).slice(0, 6);
+
+const story = await getEntry('brand', 'story');
+const { Content: StoryContent } = story ? await render(story) : { Content: null };
 ---
 
 <!doctype html>
@@ -10,41 +18,172 @@ import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
 	<head>
 		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
 	</head>
-	<body>
+	<body class="bg-base-100 text-base-content selection:bg-primary/20">
 		<Header />
 		<main>
-			<h1>🧑‍🚀 Hello, Astronaut!</h1>
-			<p>
-				Welcome to the official <a href="https://astro.build/">Astro</a> blog starter template. This
-				template serves as a lightweight, minimally-styled starting point for anyone looking to build
-				a personal website, blog, or portfolio with Astro.
-			</p>
-			<p>
-				This template comes with a few integrations already configured in your
-				<code>astro.config.mjs</code> file. You can customize your setup with
-				<a href="https://astro.build/integrations">Astro Integrations</a> to add tools like Tailwind,
-				React, or Vue to your project.
-			</p>
-			<p>Here are a few ideas on how to get started with the template:</p>
-			<ul>
-				<li>Edit this page in <code>src/pages/index.astro</code></li>
-				<li>Edit the site header items in <code>src/components/Header.astro</code></li>
-				<li>Add your name to the footer in <code>src/components/Footer.astro</code></li>
-				<li>Check out the included blog posts in <code>src/content/blog/</code></li>
-				<li>Customize the blog post page layout in <code>src/layouts/BlogPost.astro</code></li>
-			</ul>
-			<p>
-				Have fun! If you get stuck, remember to <a href="https://docs.astro.build/"
-					>read the docs
-				</a> or <a href="https://astro.build/chat">join us on Discord</a> to ask questions.
-			</p>
-			<p>
-				Looking for a blog template with a bit more personality? Check out <a
-					href="https://github.com/Charca/astro-blog-template"
-					>astro-blog-template
-				</a> by <a href="https://twitter.com/Charca">Maxi Ferreira</a>.
-			</p>
+			{/* Editorial Hero Section */}
+			<section class="container mx-auto px-6 pt-4 pb-16 lg:pt-6 lg:pb-24 flex flex-col lg:flex-row items-center gap-12 lg:gap-16 animate-entrance">
+				<div class="flex-1 space-y-6">
+					<p class="text-[10px] uppercase tracking-[0.4em] text-primary font-bold">The Home Kitchen</p>
+					<h1 class="text-6xl lg:text-7xl font-bold font-serif leading-[0.9] tracking-tight">
+						Master the <br/><span class="italic text-base-content/60">technique.</span>
+					</h1>
+					<p class="text-xl md:text-2xl text-base-content/80 leading-relaxed max-w-lg border-l-4 border-primary pl-6 py-2 font-serif italic">
+						A curated space for home cooks to find inspiration, scale recipes with precision, and master the art of the kitchen.
+					</p>
+					<div class="pt-8">
+						<a href="/recipes" class="btn btn-primary">
+							Browse Recipes
+						</a>
+					</div>
+				</div>
+				<div class="flex-1 w-full relative">
+					<div class="aspect-[3/4] lg:aspect-square relative overflow-hidden">
+						<img 
+							src="/hero-bg.png" 
+							alt="Artisanal food" 
+							class="w-full h-full object-cover filter contrast-125 saturate-50"
+						/>
+					</div>
+					{/* Editorial caption */}
+					<div class="absolute -bottom-6 -left-6 bg-base-100 p-6 border border-base-300 max-w-xs hidden lg:block">
+						<p class="text-[10px] font-bold uppercase tracking-widest mb-2 text-primary">Featured Issue</p>
+						<p class="font-serif italic text-lg leading-tight">The perfect balance of butter, salt, and heat.</p>
+					</div>
+				</div>
+			</section>
+
+			{/* Features List (Editorial) */}
+			<section class="border-y border-base-300 bg-base-200/30">
+				<div class="container mx-auto px-6">
+					<div class="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-base-300">
+						<div class="p-12 text-center group hover:bg-base-100 transition-colors">
+							<div class="text-primary mb-6 flex justify-center">
+								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+								</svg>
+							</div>
+							<h3 class="text-xl font-bold mb-3 font-serif uppercase tracking-wider">Precision Scaling</h3>
+							<p class="text-sm text-base-content/70 leading-relaxed max-w-xs mx-auto">Instantly adjust ingredients for any serving size without the napkin math.</p>
+						</div>
+						<div class="p-12 text-center group hover:bg-base-100 transition-colors">
+							<div class="text-primary mb-6 flex justify-center">
+								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+								</svg>
+							</div>
+							<h3 class="text-xl font-bold mb-3 font-serif uppercase tracking-wider">Chef's Notes</h3>
+							<p class="text-sm text-base-content/70 leading-relaxed max-w-xs mx-auto">Personal observations and professional tips included in every single recipe.</p>
+						</div>
+						<div class="p-12 text-center group hover:bg-base-100 transition-colors">
+							<div class="text-primary mb-6 flex justify-center">
+								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+								</svg>
+							</div>
+							<h3 class="text-xl font-bold mb-3 font-serif uppercase tracking-wider">Community</h3>
+							<p class="text-sm text-base-content/70 leading-relaxed max-w-xs mx-auto">Share your results and ask questions directly on the recipe pages.</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Story Section (Dynamic from Brand Collection) */}
+			<section class="py-16 md:py-20 container mx-auto px-6 border-b border-base-300">
+				<div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+					<div class="space-y-6">
+						<p class="text-xs uppercase tracking-[0.4em] text-primary font-bold">Our Story</p>
+						<h2 class="text-5xl md:text-6xl font-bold font-serif leading-tight">
+							{story?.data.title || 'A kitchen journal crafted with intention.'}
+						</h2>
+						<p class="text-xl text-base-content/80 leading-relaxed font-serif italic border-l-4 border-primary pl-6 py-2">
+							{story?.data.subtitle || "Chef's Hand is more than just a blog—it's a digital space where culinary precision meets personal storytelling."}
+						</p>
+						<div class="grid md:grid-cols-2 gap-8 pt-8 border-t border-base-300">
+							<div>
+								<h3 class="font-bold uppercase tracking-widest text-[10px] mb-3 text-primary">01. Efficiency</h3>
+								<p class="text-xs text-base-content/70 leading-relaxed font-serif">Dynamic scaling means you cook what you need, not what the recipe dictates.</p>
+							</div>
+							<div>
+								<h3 class="font-bold uppercase tracking-widest text-[10px] mb-3 text-primary">02. Reality</h3>
+								<p class="text-xs text-base-content/70 leading-relaxed font-serif">Recipes are tested in a home kitchen, with standard equipment.</p>
+							</div>
+						</div>
+					</div>
+					<div class="bg-base-200/50 p-12 md:p-16 border border-base-300">
+						<div class="prose prose-lg font-serif italic mb-8">
+							{story ? <StoryContent /> : (
+								<p class="text-lg text-base-content/80 leading-relaxed">
+									This isn't a crowded marketplace. It's a curated gallery of dishes I love. It's a conversation between the cook and the ingredients, shared with you.
+								</p>
+							)}
+						</div>
+						<div class="pt-8 border-t border-base-300">
+							<p class="font-serif italic text-xl text-primary leading-relaxed">
+								"Cooking is an art, but baking is a science. Chef's Hand bridges that gap."
+							</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Featured Recipes Section */}
+			<section class="py-16 md:py-20 container mx-auto px-6">
+				<div class="flex justify-between items-end mb-12 border-b border-base-300 pb-6">
+					<div>
+						<h2 class="text-4xl font-bold font-serif">Featured Recipes</h2>
+					</div>
+					<a href="/recipes" class="text-xs uppercase tracking-[0.2em] font-bold text-base-content hover:text-primary transition-colors flex items-center gap-2">
+						All Recipes 
+						<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+							<path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+						</svg>
+					</a>
+				</div>
+				
+				<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-12">
+					{featuredRecipes.map((recipe) => (
+						<a href={`/recipe/${recipe.id}`} class="group block">
+							<div class="aspect-[3/4] relative overflow-hidden mb-6 border border-base-300">
+								<img 
+									src={recipe.data.heroImage || "/hero-bg.png"} 
+									alt={recipe.data.title} 
+									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out filter contrast-[1.1]" 
+								/>
+								<div class="absolute top-4 left-4">
+									<span class="bg-base-100 text-base-content text-[10px] font-bold px-3 py-1.5 uppercase tracking-widest border border-base-300">
+										{recipe.data.cuisine || recipe.data.mealType || 'Recipe'}
+									</span>
+								</div>
+							</div>
+							<div>
+								<h3 class="text-3xl font-bold font-serif mb-3 group-hover:text-primary transition-colors leading-tight">
+									{recipe.data.title}
+								</h3>
+								<p class="text-base-content/70 line-clamp-2 mb-4 font-serif italic">
+									{recipe.data.description}
+								</p>
+								<div class="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-base-content/50">
+									<span class="flex items-center gap-1.5 text-primary">
+										<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+											<path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+										</svg>
+										{recipe.data.rating || '—'}
+									</span>
+									<span class="flex items-center gap-1.5">
+										<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+										</svg>
+										{(recipe.data.prepTime || 0) + (recipe.data.cookTime || 0)} MIN
+									</span>
+								</div>
+							</div>
+						</a>
+					))}
+				</div>
+			</section>
 		</main>
+		<SousChef client:load />
 		<Footer />
 	</body>
 </html>

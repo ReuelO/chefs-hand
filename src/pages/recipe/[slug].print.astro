@@ -1,0 +1,205 @@
+---
+import { type CollectionEntry, getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+	const recipes = await getCollection('recipes');
+	return recipes.map((recipe) => ({
+		params: { slug: recipe.id },
+		props: recipe,
+	}));
+}
+
+type Props = CollectionEntry<'recipes'>;
+
+const recipe = Astro.props;
+const { Content } = await render(recipe);
+
+const totalTime = (recipe.data.prepTime || 0) + (recipe.data.cookTime || 0);
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>{recipe.data.title} - Chef's Hand</title>
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			body {
+				font-family: system-ui, -apple-system, sans-serif;
+				line-height: 1.6;
+				color: #000;
+				background: #fff;
+			}
+			.container {
+				max-width: 8.5in;
+				margin: 0.5in auto;
+				padding: 0;
+			}
+			h1 {
+				font-size: 2em;
+				margin-bottom: 0.5em;
+				page-break-after: avoid;
+			}
+			h2 {
+				font-size: 1.5em;
+				margin-top: 1.5em;
+				margin-bottom: 0.5em;
+				page-break-after: avoid;
+			}
+			.header {
+				margin-bottom: 2em;
+			}
+			.description {
+				font-size: 1.1em;
+				color: #666;
+				margin-bottom: 1em;
+			}
+			.metadata {
+				display: grid;
+				grid-template-columns: repeat(2, 1fr);
+				gap: 1em;
+				margin-bottom: 2em;
+				padding: 1em;
+				background: #f5f5f5;
+				border-radius: 0.5em;
+			}
+			.metadata-item {
+				page-break-inside: avoid;
+			}
+			.metadata-label {
+				font-weight: bold;
+				color: #666;
+				font-size: 0.85em;
+			}
+			.metadata-value {
+				font-size: 1.1em;
+				color: #000;
+			}
+			.ingredients-list {
+				list-style: none;
+				margin-bottom: 2em;
+			}
+			.ingredients-list li {
+				padding: 0.5em 0;
+				page-break-inside: avoid;
+				border-bottom: 1px solid #eee;
+			}
+			.ingredients-list li:last-child {
+				border-bottom: none;
+			}
+			.instructions {
+				margin-bottom: 2em;
+			}
+			.instructions ol {
+				margin-left: 1.5em;
+			}
+			.instructions li {
+				margin-bottom: 1em;
+				page-break-inside: avoid;
+			}
+			.tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5em;
+				margin-bottom: 1em;
+			}
+			.tag {
+				display: inline-block;
+				padding: 0.25em 0.5em;
+				background: #f0f0f0;
+				border: 1px solid #ccc;
+				border-radius: 0.25em;
+				font-size: 0.85em;
+			}
+			@media print {
+				body {
+					margin: 0;
+					padding: 0;
+				}
+				.container {
+					margin: 0;
+					max-width: 100%;
+				}
+				h1, h2 {
+					page-break-after: avoid;
+				}
+				.metadata {
+					page-break-inside: avoid;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			{/* Header */}
+			<div class="header">
+				<h1>{recipe.data.title}</h1>
+				<p class="description">{recipe.data.description}</p>
+				
+				{/* Tags */}
+				{(recipe.data.cuisine || recipe.data.mealType || recipe.data.dietaryTags) && (
+					<div class="tags">
+						{recipe.data.cuisine && <span class="tag">{recipe.data.cuisine}</span>}
+						{recipe.data.mealType && <span class="tag">{recipe.data.mealType}</span>}
+						{recipe.data.difficulty && <span class="tag">{recipe.data.difficulty}</span>}
+						{recipe.data.dietaryTags?.map((tag: string) => <span class="tag">{tag}</span>)}
+					</div>
+				)}
+			</div>
+
+			{/* Metadata */}
+			<div class="metadata">
+				{recipe.data.baseServings && (
+					<div class="metadata-item">
+						<div class="metadata-label">Servings</div>
+						<div class="metadata-value">{recipe.data.baseServings}</div>
+					</div>
+				)}
+				{recipe.data.prepTime && (
+					<div class="metadata-item">
+						<div class="metadata-label">Prep Time</div>
+						<div class="metadata-value">{recipe.data.prepTime} min</div>
+					</div>
+				)}
+				{recipe.data.cookTime && (
+					<div class="metadata-item">
+						<div class="metadata-label">Cook Time</div>
+						<div class="metadata-value">{recipe.data.cookTime} min</div>
+					</div>
+				)}
+				{totalTime > 0 && (
+					<div class="metadata-item">
+						<div class="metadata-label">Total Time</div>
+						<div class="metadata-value">{totalTime} min</div>
+					</div>
+				)}
+			</div>
+
+			{/* Ingredients */}
+			<h2>Ingredients</h2>
+			<ul class="ingredients-list">
+				{recipe.data.ingredients.map((ingredient: any) => (
+					<li>
+						{ingredient.quantity} {ingredient.unit} {ingredient.name}
+						{ingredient.notes && <span> ({ingredient.notes})</span>}
+					</li>
+				))}
+			</ul>
+
+			{/* Instructions */}
+			<div class="instructions">
+				<h2>Instructions</h2>
+				<Content />
+			</div>
+
+			{/* Footer */}
+			<div style="margin-top: 3em; padding-top: 1em; border-top: 1px solid #ddd; font-size: 0.85em; color: #999;">
+				<p>Recipe from Chef's Hand - {new Date().toLocaleDateString()}</p>
+			</div>
+		</div>
+	</body>
+</html>

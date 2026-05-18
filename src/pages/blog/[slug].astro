@@ -1,0 +1,63 @@
+---
+import { type CollectionEntry, getCollection, render } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+
+export async function getStaticPaths() {
+	const posts = await getCollection('blog');
+	return posts.map((post) => ({
+		params: { slug: post.id },
+		props: post,
+	}));
+}
+
+type Props = CollectionEntry<'blog'>;
+
+const post = Astro.props as Props;
+const { Content } = await render(post);
+---
+
+<html lang="en">
+	<head>
+		<BaseHead title={post.data.title} description={post.data.description} />
+	</head>
+	<body class="bg-base-100 text-base-content selection:bg-primary/20">
+		<Header />
+		<main class="min-h-screen py-24">
+			<article class="container mx-auto px-6 max-w-4xl space-y-16 animate-entrance">
+				<header class="text-center space-y-8">
+					<nav class="flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.4em] font-bold">
+						<a href="/blog" class="text-base-content/50 hover:text-primary transition-colors">Blog</a>
+						<span class="text-base-content/20">/</span>
+						<span class="text-primary">{new Date(post.data.pubDate).toLocaleDateString()}</span>
+					</nav>
+					<h1 class="text-5xl lg:text-6xl font-bold font-serif leading-[0.9] tracking-tight">
+						{post.data.title}
+					</h1>
+					<p class="text-2xl text-base-content/60 leading-relaxed max-w-2xl mx-auto font-serif italic">
+						{post.data.description}
+					</p>
+					{post.data.updatedDate && (
+						<p class="text-[10px] text-base-content/40 uppercase tracking-widest pt-4">
+							Updated {new Date(post.data.updatedDate).toLocaleDateString()}
+						</p>
+					)}
+				</header>
+
+				{post.data.heroImage && (
+					<div class="aspect-video relative overflow-hidden border border-base-300">
+						<img src={post.data.heroImage} alt="" class="w-full h-full object-cover filter contrast-[1.1]" />
+					</div>
+				)}
+
+				<div class="border-t border-base-300 pt-16">
+					<div class="prose prose-lg md:prose-xl mx-auto max-w-3xl">
+						<Content />
+					</div>
+				</div>
+			</article>
+		</main>
+		<Footer />
+	</body>
+</html>

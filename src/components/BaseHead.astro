@@ -1,4 +1,5 @@
 ---
+import { ClientRouter } from 'astro:transitions';
 // Import the global.css file here so that it is included on
 // all pages through the use of the <BaseHead /> component.
 import '../styles/global.css';
@@ -45,3 +46,23 @@ const { title, description, image = '/blog-placeholder-1.jpg' } = Astro.props;
 <meta property="twitter:title" content={title} />
 <meta property="twitter:description" content={description} />
 <meta property="twitter:image" content={new URL(image, Astro.url)} />
+
+<script is:inline>
+  function applyTheme() {
+    // Set default theme to light if not already set
+    if (!localStorage.getItem('theme')) {
+      localStorage.setItem('theme', 'light');
+    }
+    // Apply the theme immediately to prevent flash
+    const theme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+  
+  applyTheme();
+  
+  // Re-apply theme after Astro view transitions
+  document.addEventListener('astro:after-swap', applyTheme);
+</script>
+
+<ClientRouter />
+

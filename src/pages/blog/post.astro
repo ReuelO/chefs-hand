@@ -1,0 +1,30 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import BlogGenerator from '../../components/BlogGenerator.jsx';
+---
+
+<html lang="en">
+	<head>
+		<BaseHead title="Blog Generator | Admin" description="Write and preview editorial blog posts for Chef's Hand." />
+	</head>
+	<body class="bg-base-100 text-base-content selection:bg-primary/20">
+		<Header />
+		<main class="min-h-screen">
+			<div class="container mx-auto px-6 py-16 lg:py-24 space-y-16">
+				{/* Header */}
+				<div class="border-b border-base-300 pb-12">
+					<p class="text-[10px] uppercase tracking-[0.4em] font-bold text-primary mb-4">Editorial Suite</p>
+					<h1 class="text-5xl lg:text-6xl font-bold font-serif leading-[0.9] tracking-tight">The Editor</h1>
+					<p class="mt-8 text-2xl text-base-content/60 font-serif italic max-w-2xl">
+						Where culinary storytelling meets digital elegance. Draft your next post with a real-time editorial preview.
+					</p>
+				</div>
+
+				<BlogGenerator client:load />
+			</div>
+		</main>
+		<Footer />
+	</body>
+</html>
