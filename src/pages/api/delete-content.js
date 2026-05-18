@@ -26,8 +26,19 @@ export const DELETE = async (context) => {
     const repo = getEnv('GITHUB_REPO');
     const isDev = import.meta.env.DEV;
 
-    if (!isDev && token && owner && repo) {
-      // Production: Delete file from GitHub
+    if (!isDev) {
+      // Production: Enforce GitHub integration (never attempt read-only filesystem writes)
+      if (!token || !owner || !repo) {
+        const missing = [];
+        if (!token) missing.push('GITHUB_TOKEN');
+        if (!owner) missing.push('GITHUB_OWNER');
+        if (!repo) missing.push('GITHUB_REPO');
+        return new Response(JSON.stringify({
+          error: 'GitHub credentials missing',
+          details: `The following environment variables are missing in your Cloudflare Pages production dashboard settings: ${missing.join(', ')}. Please add them under Cloudflare Dashboard > Settings > Environment Variables to enable online editing.`
+        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
+
       const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
 
       // 1. Get the current file's SHA (required for deleting in GitHub REST API)
@@ -75,9 +86,8 @@ export const DELETE = async (context) => {
 
     } else {
       // Local Development: Unlink from local disk using dynamic dynamic imports
-      // This prevents Cloudflare Worker loaders from crashing on native Node modules in production
-      const fs = await import('node:fs/promises');
-      const path = await import('node:path');
+      const fs = await import(/* @vite-ignore */ 'node:fs/promises');
+      const path = await import(/* @vite-ignore */ 'node:path');
 
       const localFilePath = path.join(process.cwd(), 'src', 'content', collection, `${safeId}.md`);
       try {

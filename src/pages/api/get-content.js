@@ -41,10 +41,8 @@ function parseMarkdownContent(markdown) {
         const val = trimmed.replace(/^-\s*/, '').replace(/"/g, '').trim();
         data.dietaryTags.push(val);
       } else if (currentKey === 'ingredients') {
-        // Parse ingredients (could be inline JSON-like syntax: - { name: "...", quantity: ... })
         if (trimmed.includes('{')) {
           try {
-            // Clean inline yaml dict into JSON
             const jsonLikeStr = trimmed.replace(/^-\s*/, '')
               .replace(/(\w+):/g, '"$1":')
               .replace(/'/g, '"');
@@ -59,7 +57,6 @@ function parseMarkdownContent(markdown) {
             console.error('Failed to parse inline ingredient:', trimmed, e);
           }
         } else {
-          // Multiline ingredient format
           if (currentIngredient) {
             data.ingredients.push(currentIngredient);
           }
@@ -79,7 +76,6 @@ function parseMarkdownContent(markdown) {
       continue;
     }
 
-    // Nested list item updates (for multiline ingredients)
     if (!trimmed.startsWith('-') && currentKey === 'ingredients' && currentIngredient) {
       const match = trimmed.match(/^(\w+):\s*(.*)$/);
       if (match) {
@@ -93,17 +89,14 @@ function parseMarkdownContent(markdown) {
       }
     }
 
-    // Parse top-level key-value
     const match = trimmed.match(/^(\w+):\s*(.*)$/);
     if (match) {
       const [, key, val] = match;
       const cleanedVal = val.replace(/^"|"$/g, '').trim();
 
-      // Handle entering nested sections
       if (key === 'ingredients' || key === 'dietaryTags' || key === 'nutrition') {
         if (key === 'dietaryTags' && cleanedVal.startsWith('[') && cleanedVal.endsWith(']')) {
           try {
-            // Replace single quotes with double quotes for JSON parsing if any
             data.dietaryTags = JSON.parse(cleanedVal.replace(/'/g, '"'));
           } catch (e) {
             console.error('Failed to parse inline dietaryTags:', cleanedVal, e);
@@ -118,7 +111,6 @@ function parseMarkdownContent(markdown) {
         continue;
       }
 
-      // Indented values inside nested keys
       const hasLeadingSpaces = line.startsWith('  ') || line.startsWith('\t');
       if (hasLeadingSpaces && currentKey === 'nutrition') {
         if (key === 'calories') data.nutrition.calories = cleanedVal;
@@ -128,7 +120,7 @@ function parseMarkdownContent(markdown) {
         continue;
       }
 
-      currentKey = null; // Exit nested keys
+      currentKey = null;
 
       if (key === 'title') data.title = cleanedVal;
       else if (key === 'description') data.description = cleanedVal;
@@ -146,12 +138,10 @@ function parseMarkdownContent(markdown) {
     }
   }
 
-  // Add the last ingredient if exists
   if (currentIngredient) {
     data.ingredients.push(currentIngredient);
   }
 
-  // Parse list of steps from recipe body
   const steps = [];
   const methodPart = /Method/i.test(body) ? (body.split(/##?\s*Method/i)[1] || '') : body;
   if (methodPart) {
@@ -195,8 +185,19 @@ export const GET = async (context) => {
 
     let markdownContent = '';
 
-    if (!isDev && token && owner && repo) {
-      // Production: Fetch file from GitHub
+    if (!isDev) {
+      // Production: Enforce GitHub integration (never attempt read-only filesystem writes)
+      if (!token || !owner || !repo) {
+        const missing = [];
+        if (!token) missing.push('GITHUB_TOKEN');
+        if (!owner) missing.push('GITHUB_OWNER');
+        if (!repo) missing.push('GITHUB_REPO');
+        return new Response(JSON.stringify({
+          error: 'GitHub credentials missing',
+          details: `The following environment variables are missing in your Cloudflare Pages production dashboard settings: ${missing.join(', ')}. Please add them under Cloudflare Dashboard > Settings > Environment Variables to enable online editing.`
+        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
+
       const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
       
       const res = await fetch(apiUrl, {
@@ -212,14 +213,12 @@ export const GET = async (context) => {
       }
 
       const data = await res.json();
-      // Decode base64 UTF-8 safely
       markdownContent = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
 
     } else {
       // Local development: Read from local filesystem using dynamic dynamic imports
-      // This prevents Cloudflare Worker loaders from crashing on native Node modules in production
-      const fs = await import('node:fs/promises');
-      const path = await import('node:path');
+      const fs = await import(/* @vite-ignore */ 'node:fs/promises');
+      const path = await import(/* @vite-ignore */ 'node:path');
 
       const localFilePath = path.join(process.cwd(), 'src', 'content', collection, `${safeId}.md`);
       try {

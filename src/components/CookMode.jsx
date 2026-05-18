@@ -4,6 +4,7 @@ export default function CookMode({ title, ingredients, baseServings, totalTime, 
   // Session Preservation Helper
   const getSessionValue = (key, defaultValue) => {
     try {
+      if (typeof window === 'undefined') return defaultValue;
       const val = sessionStorage.getItem(`cook_${title}_${key}`);
       return val !== null ? JSON.parse(val) : defaultValue;
     } catch (err) {

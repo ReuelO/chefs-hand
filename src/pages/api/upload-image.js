@@ -27,7 +27,19 @@ export const POST = async (context) => {
     const isDev = import.meta.env.DEV;
 
     // Check if we are running in production/GitHub mode or local mode
-    if (!isDev && token && owner && repo) {
+    if (!isDev) {
+      // Production: Enforce GitHub integration (never attempt read-only filesystem writes)
+      if (!token || !owner || !repo) {
+        const missing = [];
+        if (!token) missing.push('GITHUB_TOKEN');
+        if (!owner) missing.push('GITHUB_OWNER');
+        if (!repo) missing.push('GITHUB_REPO');
+        return new Response(JSON.stringify({
+          error: 'GitHub credentials missing',
+          details: `The following environment variables are missing in your Cloudflare Pages production dashboard settings: ${missing.join(', ')}. Please add them under Cloudflare Dashboard > Settings > Environment Variables to enable online editing.`
+        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
+
       // Production Mode: Commit the image directly to the GitHub repo!
       const filePath = `public/uploads/${cleanFilename}`;
       const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
@@ -60,9 +72,8 @@ export const POST = async (context) => {
 
     } else {
       // Local Mode: Save to local filesystem using dynamic dynamic imports
-      // This prevents Cloudflare Worker loaders from crashing on native Node modules in production
-      const fs = await import('node:fs/promises');
-      const path = await import('node:path');
+      const fs = await import(/* @vite-ignore */ 'node:fs/promises');
+      const path = await import(/* @vite-ignore */ 'node:path');
 
       const uploadDir = path.join(process.cwd(), 'public', 'uploads');
       

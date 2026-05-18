@@ -1,5 +1,21 @@
 export const prerender = false;
 
+// Edge-safe base64 encoder for UTF-8 strings
+const toBase64 = (str) => {
+  try {
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(str, 'utf-8').toString('base64');
+    }
+  } catch {}
+  const utf8Bytes = new TextEncoder().encode(str);
+  let binary = '';
+  const len = utf8Bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(utf8Bytes[i]);
+  }
+  return btoa(binary);
+};
+
 export const POST = async (context) => {
   const { request } = context;
 
@@ -24,12 +40,22 @@ export const POST = async (context) => {
     const repo = getEnv('GITHUB_REPO');
     const isDev = import.meta.env.DEV;
 
-    if (!isDev && token && owner && repo) {
+    if (!isDev) {
+      // Production: Enforce GitHub integration (never attempt read-only filesystem writes)
+      if (!token || !owner || !repo) {
+        const missing = [];
+        if (!token) missing.push('GITHUB_TOKEN');
+        if (!owner) missing.push('GITHUB_OWNER');
+        if (!repo) missing.push('GITHUB_REPO');
+        return new Response(JSON.stringify({
+          error: 'GitHub credentials missing',
+          details: `The following environment variables are missing in your Cloudflare Pages production dashboard settings: ${missing.join(', ')}. Please add them under Cloudflare Dashboard > Settings > Environment Variables to enable online editing.`
+        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
+
       const filePath = `src/content/${collection}/${safeFilename}`;
       const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
-      
-      // Safely encode UTF-8 to Base64 in Edge/Worker environments
-      const base64Content = btoa(unescape(encodeURIComponent(content)));
+      const base64Content = toBase64(content);
 
       // 1. Check if the file already exists to retrieve its SHA (required for updating existing files)
       let sha;
@@ -58,7 +84,7 @@ export const POST = async (context) => {
         body: JSON.stringify({
           message: `Content Update: Add/Edit ${safeFilename} via Generator`,
           content: base64Content,
-          sha: sha // Included if updating, omitted if creating new
+          sha: sha
         })
       });
 
@@ -75,9 +101,8 @@ export const POST = async (context) => {
 
     } else {
       // Local Fallback Mode: Write file to local filesystem using dynamic dynamic imports
-      // This prevents Cloudflare Worker loaders from crashing on native Node modules in production
-      const fs = await import('node:fs/promises');
-      const path = await import('node:path');
+      const fs = await import(/* @vite-ignore */ 'node:fs/promises');
+      const path = await import(/* @vite-ignore */ 'node:path');
 
       const filePath = path.join(process.cwd(), 'src', 'content', collection, safeFilename);
       
