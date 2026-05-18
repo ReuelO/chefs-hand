@@ -1,7 +1,7 @@
 ---
 title: "Secret Pasta"
 description: "Teaser description"
-heroImage: "/uploads/1779107224113-cfae5064067df09c1b4effb4dcbae9.png"
+heroImage: "/uploads/1779108025476-moodlelogo.png"
 baseServings: 4
 prepTime: 15
 cookTime: 30
@@ -9,13 +9,13 @@ difficulty: "easy"
 cuisine: "African"
 mealType: "dinner"
 cookingMethod: "stovetop"
-dietaryTags: ["vegan","pasta"]
+dietaryTags: ["vegan","gluten"]
 rating: 5
 ingredients:
-  - { name: "pasta", quantity: 1, unit: "piece", notes: "" }
+  - { name: "pasta", quantity: 1, unit: "kg", notes: "" }
   - { name: "secret sauce", quantity: 1, unit: "cup", notes: "" }
 ---
 
-1. boil pasta and drain water
-2. add secret sauce and mix
+1. boil pasta
+2. add secret sauce
 3. serve hot or cold
