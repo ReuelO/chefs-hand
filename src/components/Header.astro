@@ -116,6 +116,27 @@ import ThemeToggle from './ThemeToggle.astro';
 				}
 			});
 		});
+
+		// Dynamic Dashboard link for authorized administrators
+		const nav = document.querySelector('nav.hidden');
+		const mobileNav = document.querySelector('#mobile-menu nav');
+		
+		if (localStorage.getItem('admin_authorized') === 'true') {
+			if (nav && !nav.querySelector('[href="/admin"]')) {
+				const dashLink = document.createElement('a');
+				dashLink.href = '/admin';
+				dashLink.className = 'text-[10px] uppercase tracking-[0.2em] font-bold text-primary hover:text-primary-dark transition-colors';
+				dashLink.textContent = 'Dashboard';
+				nav.appendChild(dashLink);
+			}
+			if (mobileNav && !mobileNav.querySelector('[href="/admin"]')) {
+				const dashLinkMobile = document.createElement('a');
+				dashLinkMobile.href = '/admin';
+				dashLinkMobile.className = 'hover:text-primary transition-colors text-primary';
+				dashLinkMobile.textContent = 'Dashboard';
+				mobileNav.appendChild(dashLinkMobile);
+			}
+		}
 	});
 </script>
 

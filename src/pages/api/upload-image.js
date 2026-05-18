@@ -1,9 +1,8 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-
 export const prerender = false;
 
-export const POST = async ({ request }) => {
+export const POST = async (context) => {
+  const { request } = context;
+
   try {
     const { filename, base64Data } = await request.json();
     
@@ -15,9 +14,16 @@ export const POST = async ({ request }) => {
     const cleanFilename = `${Date.now()}-${filename.replace(/[^a-z0-9.-]/gi, '_').toLowerCase()}`;
     const relativePath = `/uploads/${cleanFilename}`;
 
-    const token = import.meta.env.GITHUB_TOKEN;
-    const owner = import.meta.env.GITHUB_OWNER;
-    const repo = import.meta.env.GITHUB_REPO;
+    // Robust environment variable resolution supporting build-time, runtime, and Cloudflare Pages/Workers context
+    const getEnv = (key) => {
+      return import.meta.env[key] || 
+             (typeof process !== 'undefined' ? process.env[key] : null) || 
+             (context.locals?.runtime?.env?.[key]);
+    };
+
+    const token = getEnv('GITHUB_TOKEN');
+    const owner = getEnv('GITHUB_OWNER');
+    const repo = getEnv('GITHUB_REPO');
     const isDev = import.meta.env.DEV;
 
     // Check if we are running in production/GitHub mode or local mode
@@ -53,16 +59,27 @@ export const POST = async ({ request }) => {
       }), { status: 200 });
 
     } else {
-      // Local Mode: Save to local filesystem in public/uploads/
+      // Local Mode: Save to local filesystem using dynamic dynamic imports
+      // This prevents Cloudflare Worker loaders from crashing on native Node modules in production
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+
       const uploadDir = path.join(process.cwd(), 'public', 'uploads');
       
       // Ensure the directory exists
       await fs.mkdir(uploadDir, { recursive: true });
       
       const filePath = path.join(uploadDir, cleanFilename);
-      const buffer = Buffer.from(base64Data, 'base64');
       
-      await fs.writeFile(filePath, buffer);
+      // Edge-safe base64 string decoding to binary
+      const binaryString = atob(base64Data);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      await fs.writeFile(filePath, bytes);
 
       return new Response(JSON.stringify({ 
         success: true, 

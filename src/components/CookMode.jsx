@@ -1,17 +1,57 @@
 import React, { useEffect, useState } from 'react';
 
 export default function CookMode({ title, ingredients, baseServings, totalTime, children }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [showIngredients, setShowIngredients] = useState(false);
-  const [completedSteps, setCompletedSteps] = useState([]);
+  // Session Preservation Helper
+  const getSessionValue = (key, defaultValue) => {
+    try {
+      const val = sessionStorage.getItem(`cook_${title}_${key}`);
+      return val !== null ? JSON.parse(val) : defaultValue;
+    } catch (err) {
+      console.warn('Failed to read sessionStorage:', err);
+      return defaultValue;
+    }
+  };
+
+  const [isOpen, setIsOpen] = useState(() => getSessionValue('isOpen', false));
+  const [showIngredients, setShowIngredients] = useState(() => getSessionValue('showIngredients', true));
+  const [completedSteps, setCompletedSteps] = useState(() => getSessionValue('completedSteps', []));
   const [totalSteps, setTotalSteps] = useState(0);
-  const [fontScale, setFontScale] = useState(1.25);
-  const [servings, setServings] = useState(baseServings);
+  const [fontScale, setFontScale] = useState(() => getSessionValue('fontScale', 1.25));
+  const [servings, setServings] = useState(() => getSessionValue('servings', baseServings));
 
   // Timer and Countdown state
-  const [time, setTime] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [time, setTime] = useState(() => getSessionValue('time', 0));
+  const [isTimerRunning, setIsTimerRunning] = useState(() => getSessionValue('isTimerRunning', false));
   const [activeCountdown, setActiveCountdown] = useState(null);
+
+  // Synchronize state updates to sessionStorage for full crash preservation
+  useEffect(() => {
+    sessionStorage.setItem(`cook_${title}_isOpen`, JSON.stringify(isOpen));
+  }, [isOpen, title]);
+
+  useEffect(() => {
+    sessionStorage.setItem(`cook_${title}_showIngredients`, JSON.stringify(showIngredients));
+  }, [showIngredients, title]);
+
+  useEffect(() => {
+    sessionStorage.setItem(`cook_${title}_completedSteps`, JSON.stringify(completedSteps));
+  }, [completedSteps, title]);
+
+  useEffect(() => {
+    sessionStorage.setItem(`cook_${title}_fontScale`, JSON.stringify(fontScale));
+  }, [fontScale, title]);
+
+  useEffect(() => {
+    sessionStorage.setItem(`cook_${title}_servings`, JSON.stringify(servings));
+  }, [servings, title]);
+
+  useEffect(() => {
+    sessionStorage.setItem(`cook_${title}_time`, JSON.stringify(time));
+  }, [time, title]);
+
+  useEffect(() => {
+    sessionStorage.setItem(`cook_${title}_isTimerRunning`, JSON.stringify(isTimerRunning));
+  }, [isTimerRunning, title]);
 
   const startCountdownRef = React.useRef(null);
   useEffect(() => {
@@ -20,10 +60,24 @@ export default function CookMode({ title, ingredients, baseServings, totalTime, 
     };
   }, []);
 
-  // Toggle body scroll when open
+  // Toggle body scroll and initialize Screen Wake Lock when open
   useEffect(() => {
+    let wakeLock = null;
+    
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.warn('Screen Wake Lock request failed:', err.message);
+      }
+    }
+
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      requestWakeLock();
+
       // Calculate total steps with a slight delay to ensure content is rendered
       const timer = setTimeout(() => {
         const steps = document.querySelectorAll('.cook-content li');
@@ -50,8 +104,22 @@ export default function CookMode({ title, ingredients, baseServings, totalTime, 
             step.appendChild(badge);
           }
         });
+
+        // Pre-apply visual 'completed' classes to steps loaded from session history
+        steps.forEach((step, index) => {
+          if (completedSteps.includes(index)) {
+            step.classList.add('completed');
+          }
+        });
       }, 150);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        if (wakeLock) {
+          wakeLock.release().then(() => {
+            wakeLock = null;
+          });
+        }
+      };
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -102,7 +170,6 @@ export default function CookMode({ title, ingredients, baseServings, totalTime, 
     }
   }, [isOpen]);
 
-  // Timer logic already declared above
   // Timer logic
   useEffect(() => {
     let interval;
@@ -131,6 +198,11 @@ export default function CookMode({ title, ingredients, baseServings, totalTime, 
       setCompletedSteps([]);
       const steps = document.querySelectorAll('.cook-content li');
       steps.forEach(s => s.classList.remove('completed'));
+      
+      // Explicitly clear preserved data in sessionStorage
+      sessionStorage.removeItem(`cook_${title}_completedSteps`);
+      sessionStorage.removeItem(`cook_${title}_time`);
+      sessionStorage.removeItem(`cook_${title}_isTimerRunning`);
     }
   };
 
@@ -143,7 +215,7 @@ export default function CookMode({ title, ingredients, baseServings, totalTime, 
     return (
       <button 
         onClick={() => setIsOpen(true)}
-        className="inline-block bg-primary text-white font-bold uppercase tracking-widest text-sm px-8 py-4 hover:bg-primary/90 transition-colors mt-8"
+        className="inline-block bg-primary text-white font-bold uppercase tracking-widest text-sm px-8 py-4 hover:bg-primary/90 transition-colors mt-8 cursor-pointer"
       >
         <div className="flex items-center gap-3">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" className="w-5 h-5">
@@ -194,7 +266,7 @@ export default function CookMode({ title, ingredients, baseServings, totalTime, 
                 <span className="text-xs text-base-content/30 font-serif italic">/ {totalTime}m</span>
                 <button 
                   onClick={() => setIsTimerRunning(!isTimerRunning)}
-                  className={`p-2 rounded-full border border-base-300 hover:bg-base-200 transition-colors ${isTimerRunning ? 'text-primary' : 'text-base-content/40'}`}
+                  className={`p-2 rounded-full border border-base-300 hover:bg-base-200 transition-colors cursor-pointer ${isTimerRunning ? 'text-primary' : 'text-base-content/40'}`}
                 >
                   {isTimerRunning ? (
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" className="w-4 h-4">
@@ -227,7 +299,7 @@ export default function CookMode({ title, ingredients, baseServings, totalTime, 
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setShowIngredients(!showIngredients)}
-              className={`p-3 border border-base-300 transition-colors ${showIngredients ? 'bg-primary text-white border-primary' : 'hover:bg-base-200'}`}
+              className={`p-3 border border-base-300 transition-colors cursor-pointer ${showIngredients ? 'bg-primary text-white border-primary' : 'hover:bg-base-200'}`}
               title="Toggle Ingredients"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" className="w-5 h-5">
@@ -236,7 +308,7 @@ export default function CookMode({ title, ingredients, baseServings, totalTime, 
             </button>
             <button 
               onClick={resetMode}
-              className="p-3 border border-base-300 hover:bg-base-200 transition-colors text-base-content/40 hover:text-primary"
+              className="p-3 border border-base-300 hover:bg-base-200 transition-colors text-base-content/40 hover:text-primary cursor-pointer"
               title="Reset session"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" className="w-5 h-5">
@@ -245,7 +317,7 @@ export default function CookMode({ title, ingredients, baseServings, totalTime, 
             </button>
             <button 
               onClick={() => setIsOpen(false)}
-              className="p-3 border border-base-300 hover:bg-base-200 transition-colors"
+              className="p-3 border border-base-300 hover:bg-base-200 transition-colors cursor-pointer"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" className="w-6 h-6">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -369,14 +441,14 @@ export default function CookMode({ title, ingredients, baseServings, totalTime, 
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/>
            </svg>
            <div className="flex flex-col">
-             <span className="text-[10px] uppercase tracking-widest font-bold opacity-70">{activeCountdown.label} Timer</span>
-             <span className="text-xl font-serif font-bold tabular-nums">
-               {Math.floor(activeCountdown.seconds / 60)}:{String(activeCountdown.seconds % 60).padStart(2, '0')}
-             </span>
+              <span className="text-[10px] uppercase tracking-widest font-bold opacity-70">{activeCountdown.label} Timer</span>
+              <span className="text-xl font-serif font-bold tabular-nums">
+                {Math.floor(activeCountdown.seconds / 60)}:{String(activeCountdown.seconds % 60).padStart(2, '0')}
+              </span>
            </div>
            <button 
              onClick={() => setActiveCountdown(null)}
-             className="ml-4 p-2 bg-base-100/20 hover:bg-base-100/40 rounded-full transition-colors"
+             className="ml-4 p-2 bg-base-100/20 hover:bg-base-100/40 rounded-full transition-colors cursor-pointer"
            >
              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
            </button>

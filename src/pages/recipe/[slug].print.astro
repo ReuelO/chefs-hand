@@ -21,7 +21,7 @@ const totalTime = (recipe.data.prepTime || 0) + (recipe.data.cookTime || 0);
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>{recipe.data.title} - Chef's Hand</title>
+		<title>{recipe.data.title} - Chef's Hand Print Edition</title>
 		<style>
 			* {
 				margin: 0;
@@ -29,118 +29,426 @@ const totalTime = (recipe.data.prepTime || 0) + (recipe.data.cookTime || 0);
 				box-sizing: border-box;
 			}
 			body {
-				font-family: system-ui, -apple-system, sans-serif;
 				line-height: 1.6;
-				color: #000;
+				color: #111;
 				background: #fff;
+				padding-top: 80px; /* Space for non-printable top switcher bar */
 			}
-			.container {
+
+			/* ---------------------------------------------------- */
+			/* TOP TEMPLATE SWITCHER (HIDDEN DURING PRINT)          */
+			/* ---------------------------------------------------- */
+			.no-print {
+				display: block;
+			}
+			.template-selector {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				height: 70px;
+				background: #111;
+				color: #fff;
+				z-index: 1000;
+				box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+				font-family: system-ui, -apple-system, sans-serif;
+			}
+			.selector-container {
 				max-width: 8.5in;
-				margin: 0.5in auto;
-				padding: 0;
+				height: 100%;
+				margin: 0 auto;
+				padding: 0 20px;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
 			}
-			h1 {
-				font-size: 2em;
-				margin-bottom: 0.5em;
-				page-break-after: avoid;
+			.selector-title {
+				font-size: 11px;
+				font-weight: 800;
+				text-transform: uppercase;
+				letter-spacing: 0.2em;
+				opacity: 0.7;
 			}
-			h2 {
-				font-size: 1.5em;
+			.selector-buttons {
+				display: flex;
+				gap: 10px;
+			}
+			.selector-btn {
+				background: transparent;
+				border: 1px solid rgba(255,255,255,0.2);
+				color: rgba(255,255,255,0.7);
+				font-size: 10px;
+				font-weight: bold;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				padding: 8px 16px;
+				border-radius: 4px;
+				cursor: pointer;
+				transition: all 0.2s ease;
+			}
+			.selector-btn:hover {
+				color: #fff;
+				border-color: rgba(255,255,255,0.5);
+			}
+			.selector-btn.active {
+				background: #fff;
+				color: #000;
+				border-color: #fff;
+			}
+			.print-trigger-btn {
+				background: #2E5A44; /* Custom preset green */
+				border: none;
+				color: #fff;
+				font-size: 10px;
+				font-weight: bold;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				padding: 8px 20px;
+				border-radius: 4px;
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				transition: background 0.2s;
+			}
+			.print-trigger-btn:hover {
+				background: #1f3e2e;
+			}
+
+			/* Base card wrapper structure */
+			.print-card-wrapper {
+				max-width: 8.5in;
+				margin: 20px auto;
+				padding: 40px;
+				transition: all 0.3s ease;
+			}
+
+			/* ---------------------------------------------------- */
+			/* TEMPLATE 1: MODERN EDITORIAL (GEORGIA / SERIF)       */
+			/* ---------------------------------------------------- */
+			body.template-editorial {
+				font-family: "Georgia", "Times New Roman", serif;
+			}
+			body.template-editorial .print-card-wrapper {
+				border: 1px solid #e5e5e5;
+			}
+			body.template-editorial h1 {
+				font-size: 2.8em;
+				font-weight: bold;
+				letter-spacing: -0.02em;
+				line-height: 1.1;
+				margin-bottom: 0.3em;
+			}
+			body.template-editorial h2 {
+				font-size: 1.6em;
+				text-transform: uppercase;
+				letter-spacing: 0.05em;
+				border-bottom: 2px solid #111;
+				padding-bottom: 5px;
 				margin-top: 1.5em;
-				margin-bottom: 0.5em;
+				margin-bottom: 0.8em;
 				page-break-after: avoid;
 			}
-			.header {
+			body.template-editorial .description {
+				font-size: 1.1em;
+				font-style: italic;
+				color: #555;
+				line-height: 1.5;
+				margin-bottom: 1.5em;
+			}
+			body.template-editorial .metadata {
+				display: grid;
+				grid-template-columns: repeat(4, 1fr);
+				border-top: 1px solid #111;
+				border-bottom: 1px solid #111;
+				padding: 15px 0;
 				margin-bottom: 2em;
 			}
-			.description {
-				font-size: 1.1em;
-				color: #666;
-				margin-bottom: 1em;
+			body.template-editorial .metadata-item {
+				text-align: center;
+				border-right: 1px solid #eee;
 			}
-			.metadata {
+			body.template-editorial .metadata-item:last-child {
+				border-right: none;
+			}
+			body.template-editorial .metadata-label {
+				font-family: system-ui, sans-serif;
+				font-size: 9px;
+				text-transform: uppercase;
+				letter-spacing: 0.15em;
+				color: #777;
+				margin-bottom: 4px;
+			}
+			body.template-editorial .metadata-value {
+				font-size: 1.2em;
+				font-weight: bold;
+			}
+			body.template-editorial .ingredients-list {
+				list-style: none;
 				display: grid;
 				grid-template-columns: repeat(2, 1fr);
-				gap: 1em;
+				gap: x-8px;
 				margin-bottom: 2em;
-				padding: 1em;
-				background: #f5f5f5;
-				border-radius: 0.5em;
 			}
-			.metadata-item {
+			body.template-editorial .ingredients-list li {
+				padding: 6px 0;
+				border-bottom: 1px dashed #ddd;
+				font-size: 0.95em;
 				page-break-inside: avoid;
 			}
-			.metadata-label {
-				font-weight: bold;
-				color: #666;
-				font-size: 0.85em;
-			}
-			.metadata-value {
-				font-size: 1.1em;
-				color: #000;
-			}
-			.ingredients-list {
-				list-style: none;
-				margin-bottom: 2em;
-			}
-			.ingredients-list li {
-				padding: 0.5em 0;
-				page-break-inside: avoid;
-				border-bottom: 1px solid #eee;
-			}
-			.ingredients-list li:last-child {
-				border-bottom: none;
-			}
-			.instructions {
-				margin-bottom: 2em;
-			}
-			.instructions ol {
+			body.template-editorial .instructions ol {
 				margin-left: 1.5em;
 			}
-			.instructions li {
-				margin-bottom: 1em;
+			body.template-editorial .instructions li {
+				margin-bottom: 1.2em;
+				line-height: 1.6;
 				page-break-inside: avoid;
 			}
+
+			/* ---------------------------------------------------- */
+			/* TEMPLATE 2: CLASSIC FRENCH JOURNAL (DECORATIVE BORDER)*/
+			/* ---------------------------------------------------- */
+			body.template-journal {
+				font-family: "Garamond", "Times New Roman", serif;
+				background: #fff;
+			}
+			body.template-journal .print-card-wrapper {
+				border: 6px double #3a322e;
+				padding: 50px;
+				background: #fff;
+			}
+			body.template-journal h1 {
+				font-size: 2.6em;
+				text-align: center;
+				font-weight: 500;
+				font-style: italic;
+				margin-bottom: 0.4em;
+			}
+			body.template-journal h2 {
+				font-size: 1.4em;
+				text-align: center;
+				font-style: italic;
+				font-weight: bold;
+				margin-top: 1.5em;
+				margin-bottom: 0.8em;
+				page-break-after: avoid;
+			}
+			body.template-journal h2::before, body.template-journal h2::after {
+				content: " • ";
+				color: #8c7662;
+			}
+			body.template-journal .description {
+				font-size: 1.1em;
+				text-align: center;
+				color: #444;
+				font-style: italic;
+				margin-bottom: 2em;
+				line-height: 1.6;
+			}
+			body.template-journal .metadata {
+				display: flex;
+				justify-content: center;
+				gap: 40px;
+				border-top: 1px solid #8c7662;
+				border-bottom: 1px solid #8c7662;
+				padding: 12px 0;
+				margin-bottom: 2em;
+			}
+			body.template-journal .metadata-item {
+				text-align: center;
+			}
+			body.template-journal .metadata-label {
+				font-size: 10px;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				color: #8c7662;
+			}
+			body.template-journal .metadata-value {
+				font-size: 1.1em;
+				font-weight: bold;
+			}
+			body.template-journal .ingredients-list {
+				list-style: none;
+				max-width: 500px;
+				margin: 0 auto 2em auto;
+			}
+			body.template-journal .ingredients-list li {
+				padding: 8px 0;
+				border-bottom: 1px solid #e8e2dc;
+				text-align: center;
+				font-size: 1.05em;
+				page-break-inside: avoid;
+			}
+			body.template-journal .instructions ol {
+				margin-left: 2em;
+				max-width: 600px;
+				margin: 0 auto;
+			}
+			body.template-journal .instructions li {
+				margin-bottom: 1.2em;
+				font-size: 1.05em;
+				line-height: 1.6;
+				page-break-inside: avoid;
+			}
+
+			/* ---------------------------------------------------- */
+			/* TEMPLATE 3: MINIMALIST INDEX GRID (COMPACT & MODERN) */
+			/* ---------------------------------------------------- */
+			body.template-minimal {
+				font-family: system-ui, -apple-system, sans-serif;
+			}
+			body.template-minimal .print-card-wrapper {
+				border: 2px solid #000;
+				padding: 30px;
+			}
+			body.template-minimal h1 {
+				font-size: 2em;
+				font-weight: 800;
+				text-transform: uppercase;
+				letter-spacing: -0.03em;
+				margin-bottom: 0.2em;
+			}
+			body.template-minimal h2 {
+				font-size: 11px;
+				font-weight: 800;
+				text-transform: uppercase;
+				letter-spacing: 0.2em;
+				background: #000;
+				color: #fff;
+				padding: 6px 12px;
+				margin-top: 1.5em;
+				margin-bottom: 1em;
+				page-break-after: avoid;
+			}
+			body.template-minimal .description {
+				font-size: 0.95em;
+				color: #444;
+				margin-bottom: 1.5em;
+			}
+			body.template-minimal .metadata {
+				display: grid;
+				grid-template-columns: repeat(2, 1fr);
+				gap: 8px;
+				margin-bottom: 1.5em;
+			}
+			body.template-minimal .metadata-item {
+				border: 1px solid #000;
+				padding: 10px;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+			body.template-minimal .metadata-label {
+				font-size: 9px;
+				font-weight: bold;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+			}
+			body.template-minimal .metadata-value {
+				font-size: 11px;
+				font-weight: bold;
+			}
+			body.template-minimal .ingredients-list {
+				list-style: square;
+				margin-left: 1.5em;
+				margin-bottom: 1.5em;
+			}
+			body.template-minimal .ingredients-list li {
+				padding: 4px 0;
+				font-size: 0.9em;
+				page-break-inside: avoid;
+			}
+			body.template-minimal .instructions ol {
+				margin-left: 1.5em;
+			}
+			body.template-minimal .instructions li {
+				margin-bottom: 0.8em;
+				font-size: 0.9em;
+				line-height: 1.5;
+				page-break-inside: avoid;
+			}
+
+			/* Common tags rendering styling */
 			.tags {
 				display: flex;
 				flex-wrap: wrap;
 				gap: 0.5em;
-				margin-bottom: 1em;
+				margin-bottom: 1.5em;
 			}
 			.tag {
 				display: inline-block;
-				padding: 0.25em 0.5em;
-				background: #f0f0f0;
-				border: 1px solid #ccc;
-				border-radius: 0.25em;
-				font-size: 0.85em;
+				padding: 4px 8px;
+				background: #f5f5f5;
+				border: 1px solid #ddd;
+				font-size: 8px;
+				font-weight: bold;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
 			}
+			body.template-minimal .tag {
+				border-color: #000;
+				background: transparent;
+			}
+
+			/* ---------------------------------------------------- */
+			/* PRINT MEDIA STYLING RULES                            */
+			/* ---------------------------------------------------- */
 			@media print {
+				.no-print, .template-selector {
+					display: none !important;
+				}
 				body {
-					margin: 0;
-					padding: 0;
+					padding-top: 0 !important;
+					margin: 0 !important;
+					background: #fff !important;
+					color: #000 !important;
 				}
-				.container {
-					margin: 0;
-					max-width: 100%;
+				.print-card-wrapper {
+					margin: 0 !important;
+					padding: 20px !important;
+					border: none !important;
+					max-width: 100% !important;
 				}
-				h1, h2 {
-					page-break-after: avoid;
+				body.template-editorial .print-card-wrapper {
+					border: none !important;
 				}
-				.metadata {
-					page-break-inside: avoid;
+				body.template-journal .print-card-wrapper {
+					border: 6px double #3a322e !important;
+					padding: 40px !important;
+				}
+				body.template-minimal .print-card-wrapper {
+					border: 2px solid #000 !important;
+					padding: 20px !important;
 				}
 			}
 		</style>
 	</head>
-	<body>
-		<div class="container">
-			{/* Header */}
+	<body class="template-editorial">
+		<!-- Top Template Selector Bar (Strictly Non-Printable) -->
+		<div class="template-selector no-print">
+			<div class="selector-container">
+				<span class="selector-title">Print Layout Template</span>
+				<div class="selector-buttons">
+					<button onclick="setTemplate('editorial')" id="btn-editorial" class="selector-btn active">Modern Editorial</button>
+					<button onclick="setTemplate('journal')" id="btn-journal" class="selector-btn">Classic Journal</button>
+					<button onclick="setTemplate('minimal')" id="btn-minimal" class="selector-btn">Minimal Grid</button>
+				</div>
+				<button onclick="window.print();" class="print-trigger-btn">
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width: 14px; height: 14px; margin-right: 6px;">
+						<path fill-rule="evenodd" d="M5 2.75C5 1.784 5.784 1 6.75 1h6.5c.966 0 1.75.784 1.75 1.75v1.5A1.75 1.75 0 0 1 16.75 6H3.25A1.75 1.75 0 0 1 1.5 4.25v-1.5C1.5 1.784 2.284 1 3.25 1h.5v1.75A1.75 1.75 0 0 0 5.5 4.5h9A1.75 1.75 0 0 0 16 2.75V1H6.75A.75.75 0 0 0 6 1.75V3H5V2.75ZM1.5 7.75A1.75 1.75 0 0 1 3.25 6h13.5a1.75 1.75 0 0 1 1.75 1.75v5.5a1.75 1.75 0 0 1-1.75 1.75H16v2.25A1.75 1.75 0 0 1 14.25 19h-8.5A1.75 1.75 0 0 1 4 17.25V15H3.25A1.75 1.75 0 0 1 1.5 13.25v-5.5ZM14.5 15v2.25a.25.25 0 0 1-.25.25h-8.5a.25.25 0 0 1-.25-.25V15h9ZM16 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" clip-rule="evenodd" />
+					</svg>
+					Print
+				</button>
+			</div>
+		</div>
+
+		<!-- Printable Recipe Card Layout -->
+		<div class="print-card-wrapper">
+			{/* Header Section */}
 			<div class="header">
 				<h1>{recipe.data.title}</h1>
 				<p class="description">{recipe.data.description}</p>
 				
-				{/* Tags */}
+				{/* Category Tags */}
 				{(recipe.data.cuisine || recipe.data.mealType || recipe.data.dietaryTags) && (
 					<div class="tags">
 						{recipe.data.cuisine && <span class="tag">{recipe.data.cuisine}</span>}
@@ -151,7 +459,7 @@ const totalTime = (recipe.data.prepTime || 0) + (recipe.data.cookTime || 0);
 				)}
 			</div>
 
-			{/* Metadata */}
+			{/* Recipe Stats Metadata */}
 			<div class="metadata">
 				{recipe.data.baseServings && (
 					<div class="metadata-item">
@@ -162,44 +470,75 @@ const totalTime = (recipe.data.prepTime || 0) + (recipe.data.cookTime || 0);
 				{recipe.data.prepTime && (
 					<div class="metadata-item">
 						<div class="metadata-label">Prep Time</div>
-						<div class="metadata-value">{recipe.data.prepTime} min</div>
+						<div class="metadata-value">{recipe.data.prepTime}m</div>
 					</div>
 				)}
 				{recipe.data.cookTime && (
 					<div class="metadata-item">
 						<div class="metadata-label">Cook Time</div>
-						<div class="metadata-value">{recipe.data.cookTime} min</div>
+						<div class="metadata-value">{recipe.data.cookTime}m</div>
 					</div>
 				)}
 				{totalTime > 0 && (
 					<div class="metadata-item">
 						<div class="metadata-label">Total Time</div>
-						<div class="metadata-value">{totalTime} min</div>
+						<div class="metadata-value">{totalTime}m</div>
 					</div>
 				)}
 			</div>
 
-			{/* Ingredients */}
+			{/* Ingredients Grid */}
 			<h2>Ingredients</h2>
 			<ul class="ingredients-list">
 				{recipe.data.ingredients.map((ingredient: any) => (
 					<li>
-						{ingredient.quantity} {ingredient.unit} {ingredient.name}
-						{ingredient.notes && <span> ({ingredient.notes})</span>}
+						<strong>
+							{ingredient.quantity} {ingredient.unit}
+						</strong>{' '}
+						{ingredient.name}
+						{ingredient.notes && <span style="opacity: 0.75; font-style: italic;"> ({ingredient.notes})</span>}
 					</li>
 				))}
 			</ul>
 
-			{/* Instructions */}
+			{/* Preparation Directions */}
 			<div class="instructions">
 				<h2>Instructions</h2>
 				<Content />
 			</div>
 
-			{/* Footer */}
-			<div style="margin-top: 3em; padding-top: 1em; border-top: 1px solid #ddd; font-size: 0.85em; color: #999;">
-				<p>Recipe from Chef's Hand - {new Date().toLocaleDateString()}</p>
+			{/* Footnote Branding */}
+			<div style="margin-top: 3em; padding-top: 1.5em; border-top: 1px dashed #ccc; font-size: 9px; text-transform: uppercase; letter-spacing: 0.15em; color: #888; text-align: center; font-family: system-ui, sans-serif;">
+				<p>Thank you for cooking with Chef's Hand • Printed on {new Date().toLocaleDateString()}</p>
 			</div>
 		</div>
+
+		<!-- Interactive Client-side Script to change templates and load settings -->
+		<script is:inline>
+			function setTemplate(template) {
+				// Remove all template classes
+				document.body.classList.remove('template-editorial', 'template-journal', 'template-minimal');
+				// Apply selected template class
+				document.body.classList.add('template-' + template);
+
+				// Update active status on selector buttons
+				document.querySelectorAll('.selector-btn').forEach(btn => {
+					btn.classList.remove('active');
+				});
+				const activeBtn = document.getElementById('btn-' + template);
+				if (activeBtn) {
+					activeBtn.classList.add('active');
+				}
+
+				// Persist preference
+				localStorage.setItem('chefs_hand_print_template', template);
+			}
+
+			// Load preferred print template from local memory on initialization
+			document.addEventListener('DOMContentLoaded', () => {
+				const savedTemplate = localStorage.getItem('chefs_hand_print_template') || 'editorial';
+				setTemplate(savedTemplate);
+			});
+		</script>
 	</body>
 </html>

@@ -1,9 +1,8 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-
 export const prerender = false;
 
-export const DELETE = async ({ url }) => {
+export const DELETE = async (context) => {
+  const { url } = context;
+
   try {
     const collection = url.searchParams.get('collection');
     const id = url.searchParams.get('id');
@@ -15,9 +14,16 @@ export const DELETE = async ({ url }) => {
     const safeId = id.replace(/[^a-z0-9.-]/gi, '_').toLowerCase();
     const filePath = `src/content/${collection}/${safeId}.md`;
 
-    const token = import.meta.env.GITHUB_TOKEN;
-    const owner = import.meta.env.GITHUB_OWNER;
-    const repo = import.meta.env.GITHUB_REPO;
+    // Robust environment variable resolution supporting build-time, runtime, and Cloudflare Pages/Workers context
+    const getEnv = (key) => {
+      return import.meta.env[key] || 
+             (typeof process !== 'undefined' ? process.env[key] : null) || 
+             (context.locals?.runtime?.env?.[key]);
+    };
+
+    const token = getEnv('GITHUB_TOKEN');
+    const owner = getEnv('GITHUB_OWNER');
+    const repo = getEnv('GITHUB_REPO');
     const isDev = import.meta.env.DEV;
 
     if (!isDev && token && owner && repo) {
@@ -68,7 +74,11 @@ export const DELETE = async ({ url }) => {
       }), { status: 200 });
 
     } else {
-      // Local Development: Unlink from local disk
+      // Local Development: Unlink from local disk using dynamic dynamic imports
+      // This prevents Cloudflare Worker loaders from crashing on native Node modules in production
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+
       const localFilePath = path.join(process.cwd(), 'src', 'content', collection, `${safeId}.md`);
       try {
         await fs.unlink(localFilePath);

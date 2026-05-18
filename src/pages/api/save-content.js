@@ -1,9 +1,8 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-
 export const prerender = false;
 
-export const POST = async ({ request }) => {
+export const POST = async (context) => {
+  const { request } = context;
+
   try {
     const { filename, content, collection } = await request.json();
     
@@ -13,13 +12,18 @@ export const POST = async ({ request }) => {
 
     const safeFilename = filename.replace(/[^a-z0-9.-]/gi, '_').toLowerCase();
 
-    // Read environment variables (Must be set in Cloudflare and local .env)
-    const token = import.meta.env.GITHUB_TOKEN;
-    const owner = import.meta.env.GITHUB_OWNER;
-    const repo = import.meta.env.GITHUB_REPO;
+    // Robust environment variable resolution supporting build-time, runtime, and Cloudflare Pages/Workers context
+    const getEnv = (key) => {
+      return import.meta.env[key] || 
+             (typeof process !== 'undefined' ? process.env[key] : null) || 
+             (context.locals?.runtime?.env?.[key]);
+    };
 
-    // Check if we should use GitHub mode (only in production when credentials are fully set)
+    const token = getEnv('GITHUB_TOKEN');
+    const owner = getEnv('GITHUB_OWNER');
+    const repo = getEnv('GITHUB_REPO');
     const isDev = import.meta.env.DEV;
+
     if (!isDev && token && owner && repo) {
       const filePath = `src/content/${collection}/${safeFilename}`;
       const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
@@ -70,7 +74,11 @@ export const POST = async ({ request }) => {
       }), { status: 200 });
 
     } else {
-      // Local Fallback Mode: Write file to local filesystem
+      // Local Fallback Mode: Write file to local filesystem using dynamic dynamic imports
+      // This prevents Cloudflare Worker loaders from crashing on native Node modules in production
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+
       const filePath = path.join(process.cwd(), 'src', 'content', collection, safeFilename);
       
       // Ensure the collection folder exists

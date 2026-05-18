@@ -1,6 +1,3 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-
 export const prerender = false;
 
 // Simple but robust frontmatter + markdown parser
@@ -170,7 +167,9 @@ function parseMarkdownContent(markdown) {
   return { ...data, body, steps };
 }
 
-export const GET = async ({ url }) => {
+export const GET = async (context) => {
+  const { url } = context;
+
   try {
     const collection = url.searchParams.get('collection');
     const id = url.searchParams.get('id');
@@ -182,9 +181,16 @@ export const GET = async ({ url }) => {
     const safeId = id.replace(/[^a-z0-9.-]/gi, '_').toLowerCase();
     const filePath = `src/content/${collection}/${safeId}.md`;
 
-    const token = import.meta.env.GITHUB_TOKEN;
-    const owner = import.meta.env.GITHUB_OWNER;
-    const repo = import.meta.env.GITHUB_REPO;
+    // Robust environment variable resolution supporting build-time, runtime, and Cloudflare Pages/Workers context
+    const getEnv = (key) => {
+      return import.meta.env[key] || 
+             (typeof process !== 'undefined' ? process.env[key] : null) || 
+             (context.locals?.runtime?.env?.[key]);
+    };
+
+    const token = getEnv('GITHUB_TOKEN');
+    const owner = getEnv('GITHUB_OWNER');
+    const repo = getEnv('GITHUB_REPO');
     const isDev = import.meta.env.DEV;
 
     let markdownContent = '';
@@ -197,7 +203,7 @@ export const GET = async ({ url }) => {
         headers: {
           'Authorization': `Bearer ${token}`,
           'User-Agent': 'Chefs-Hand-App',
-          'Accept': 'application/vnd.github.v3.json'
+          'Accept': 'application/vnd.github.v3+json'
         }
       });
 
@@ -210,7 +216,11 @@ export const GET = async ({ url }) => {
       markdownContent = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
 
     } else {
-      // Local development: Read from local filesystem
+      // Local development: Read from local filesystem using dynamic dynamic imports
+      // This prevents Cloudflare Worker loaders from crashing on native Node modules in production
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+
       const localFilePath = path.join(process.cwd(), 'src', 'content', collection, `${safeId}.md`);
       try {
         markdownContent = await fs.readFile(localFilePath, 'utf8');

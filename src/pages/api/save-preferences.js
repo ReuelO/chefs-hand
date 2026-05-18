@@ -1,20 +1,26 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-
 export const prerender = false;
 
-export const POST = async ({ request }) => {
+export const POST = async (context) => {
+  const { request } = context;
+
   try {
     const preferencesData = await request.json();
     
-    // Validate inputs slightly
+    // Validate inputs
     if (!preferencesData.themeColor || !preferencesData.brandSubtitle) {
       return new Response(JSON.stringify({ error: 'Missing themeColor or brandSubtitle' }), { status: 400 });
     }
 
-    const token = import.meta.env.GITHUB_TOKEN;
-    const owner = import.meta.env.GITHUB_OWNER;
-    const repo = import.meta.env.GITHUB_REPO;
+    // Robust environment variable resolution supporting build-time, runtime, and Cloudflare Pages/Workers context
+    const getEnv = (key) => {
+      return import.meta.env[key] || 
+             (typeof process !== 'undefined' ? process.env[key] : null) || 
+             (context.locals?.runtime?.env?.[key]);
+    };
+
+    const token = getEnv('GITHUB_TOKEN');
+    const owner = getEnv('GITHUB_OWNER');
+    const repo = getEnv('GITHUB_REPO');
     const isDev = import.meta.env.DEV;
 
     const fileContentStr = JSON.stringify(preferencesData, null, 2);
@@ -68,7 +74,11 @@ export const POST = async ({ request }) => {
       }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
     } else {
-      // Local: Write directly to filesystem
+      // Local: Write directly to filesystem using dynamic dynamic imports
+      // This prevents Cloudflare Worker loaders from crashing on native Node modules in production
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+
       const localFilePath = path.join(process.cwd(), 'src', 'data', 'preferences.json');
       await fs.writeFile(localFilePath, fileContentStr, 'utf8');
 

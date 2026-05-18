@@ -1,11 +1,19 @@
 export const prerender = false;
 
-export const POST = async ({ request }) => {
+export const POST = async (context) => {
+  const { request } = context;
+
   try {
     const { passcode } = await request.json();
     
-    // Check if passcode is set via environment variables, otherwise fallback to default
-    const serverPasscode = import.meta.env.ADMIN_PASSCODE || 'premium_chef';
+    // Robust environment variable resolution supporting build-time, runtime, and Cloudflare Pages/Workers context
+    const getEnv = (key) => {
+      return import.meta.env[key] || 
+             (typeof process !== 'undefined' ? process.env[key] : null) || 
+             (context.locals?.runtime?.env?.[key]);
+    };
+
+    const serverPasscode = getEnv('ADMIN_PASSCODE') || 'premium_chef';
 
     if (passcode === serverPasscode) {
       return new Response(JSON.stringify({ 
