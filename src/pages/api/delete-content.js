@@ -1,0 +1,94 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+export const prerender = false;
+
+export const DELETE = async ({ url }) => {
+  try {
+    const collection = url.searchParams.get('collection');
+    const id = url.searchParams.get('id');
+
+    if (!collection || !id) {
+      return new Response(JSON.stringify({ error: 'Missing collection or id parameters' }), { status: 400 });
+    }
+
+    const safeId = id.replace(/[^a-z0-9.-]/gi, '_').toLowerCase();
+    const filePath = `src/content/${collection}/${safeId}.md`;
+
+    const token = import.meta.env.GITHUB_TOKEN;
+    const owner = import.meta.env.GITHUB_OWNER;
+    const repo = import.meta.env.GITHUB_REPO;
+    const isDev = import.meta.env.DEV;
+
+    if (!isDev && token && owner && repo) {
+      // Production: Delete file from GitHub
+      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
+
+      // 1. Get the current file's SHA (required for deleting in GitHub REST API)
+      let sha;
+      const getRes = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'User-Agent': 'Chefs-Hand-App',
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+
+      if (getRes.ok) {
+        const data = await getRes.json();
+        sha = data.sha;
+      } else {
+        return new Response(JSON.stringify({ error: 'File not found on GitHub' }), { status: 404 });
+      }
+
+      // 2. Perform the deletion commit
+      const delRes = await fetch(apiUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'Chefs-Hand-App',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          message: `Content Update: Delete ${safeId} via Admin Panel`,
+          sha: sha
+        })
+      });
+
+      const delData = await delRes.json();
+
+      if (!delRes.ok) {
+        throw new Error(delData.message || 'Failed to delete on GitHub');
+      }
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: 'Content successfully deleted from GitHub. Rebuilding.' 
+      }), { status: 200 });
+
+    } else {
+      // Local Development: Unlink from local disk
+      const localFilePath = path.join(process.cwd(), 'src', 'content', collection, `${safeId}.md`);
+      try {
+        await fs.unlink(localFilePath);
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: `Successfully deleted file locally at ${localFilePath}` 
+        }), { status: 200 });
+      } catch (err) {
+        return new Response(JSON.stringify({ 
+          error: 'File not found locally', 
+          details: err.message 
+        }), { status: 404 });
+      }
+    }
+
+  } catch (error) {
+    console.error('Error deleting content:', error);
+    return new Response(JSON.stringify({
+      error: 'Failed to delete content',
+      details: error.message
+    }), { status: 500 });
+  }
+};

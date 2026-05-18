@@ -7,7 +7,7 @@ import ThemeToggle from './ThemeToggle.astro';
 <header class="sticky top-0 z-[100] border-b border-base-300 bg-base-100">
 	<div class="container mx-auto flex items-center justify-between px-6 py-3">
 		<div class="flex items-center gap-12">
-			<a href="/" class="group flex items-center gap-3 no-underline">
+			<a href="/" class="group flex items-center gap-3 no-underline brand-logo cursor-pointer select-none">
 				<div class="w-10 h-10 bg-base-content flex items-center justify-center text-base-100 font-serif italic text-xl transition-transform group-hover:scale-105">
 					C
 				</div>
@@ -65,26 +65,56 @@ import ThemeToggle from './ThemeToggle.astro';
 </header>
 
 <script>
-	const toggle = document.getElementById('mobile-menu-toggle');
-	const close = document.getElementById('mobile-menu-close');
-	const menu = document.getElementById('mobile-menu');
+	document.addEventListener('astro:page-load', () => {
+		const toggle = document.getElementById('mobile-menu-toggle');
+		const close = document.getElementById('mobile-menu-close');
+		const menu = document.getElementById('mobile-menu');
 
-	toggle?.addEventListener('click', () => {
-		menu?.classList.remove('translate-x-full');
-		document.body.style.overflow = 'hidden';
-	});
+		toggle?.addEventListener('click', () => {
+			menu?.classList.remove('translate-x-full');
+			document.body.style.overflow = 'hidden';
+		});
 
-	close?.addEventListener('click', () => {
-		menu?.classList.add('translate-x-full');
-		document.body.style.overflow = 'unset';
-	});
-
-	// Close menu on link click
-	const links = menu?.querySelectorAll('a');
-	links?.forEach(link => {
-		link.addEventListener('click', () => {
+		close?.addEventListener('click', () => {
 			menu?.classList.add('translate-x-full');
 			document.body.style.overflow = 'unset';
+		});
+
+		// Close menu on link click
+		const links = menu?.querySelectorAll('a');
+		links?.forEach(link => {
+			link.addEventListener('click', () => {
+				menu?.classList.add('translate-x-full');
+				document.body.style.overflow = 'unset';
+			});
+		});
+
+		// Double-click brand logo for Admin Access (Secured purely server-side)
+		document.querySelectorAll('.brand-logo').forEach(logo => {
+			logo.addEventListener('dblclick', async (e) => {
+				e.preventDefault();
+				const passcode = prompt('Enter Admin Passcode:');
+				if (!passcode) return;
+
+				try {
+					const res = await fetch('/api/verify-passcode', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ passcode })
+					});
+					const data = await res.json();
+
+					if (res.ok && data.success) {
+						localStorage.setItem('admin_authorized', 'true');
+						window.location.href = '/admin';
+					} else {
+						alert('Access Denied: Incorrect passcode.');
+					}
+				} catch (err) {
+					console.error('Passcode verification failed:', err);
+					alert('Authentication service is currently unavailable.');
+				}
+			});
 		});
 	});
 </script>

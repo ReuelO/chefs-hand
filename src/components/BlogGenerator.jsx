@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ImageUploader from './ImageUploader';
 
 // Simple markdown parser for preview
 const parseMarkdown = (text) => {
@@ -27,6 +28,31 @@ export default function BlogGenerator() {
     pubDate: new Date().toISOString().split('T')[0],
     content: ''
   });
+
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const editSlug = params.get('edit');
+    if (editSlug) {
+      setIsEditing(true);
+      fetch(`/api/get-content?collection=blog&id=${editSlug}`)
+        .then(res => res.json())
+        .then(res => {
+          if (res.success && res.data) {
+            const data = res.data;
+            setPost({
+              title: data.title || '',
+              description: data.description || '',
+              heroImage: data.heroImage || '/blog-placeholder-1.jpg',
+              pubDate: data.pubDate || new Date().toISOString().split('T')[0],
+              content: data.body || ''
+            });
+          }
+        })
+        .catch(err => console.error('Failed to load blog post for editing:', err));
+    }
+  }, []);
 
   const [generatedMd, setGeneratedMd] = useState('');
   const [saveStatus, setSaveStatus] = useState(null);
@@ -60,7 +86,12 @@ export default function BlogGenerator() {
 
       if (response.ok) {
         setSaveStatus('success');
-        setTimeout(() => setSaveStatus(null), 3000);
+        setTimeout(() => {
+          setSaveStatus(null);
+          const params = new URLSearchParams(window.location.search);
+          const isFromAdmin = params.get('admin') === 'true' || params.get('edit');
+          window.location.href = isFromAdmin ? '/admin' : '/blog';
+        }, 100); // 100ms instant redirect to beat Astro dev server HMR rebuild
       } else {
         throw new Error('Failed to save');
       }
@@ -93,9 +124,9 @@ export default function BlogGenerator() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Hero Image</label>
-                <input 
-                  type="text" value={post.heroImage} onChange={e => updateField('heroImage', e.target.value)}
-                  className="input" placeholder="/blog-placeholder-1.jpg"
+                <ImageUploader 
+                  imageUrl={post.heroImage} 
+                  onUploadSuccess={url => updateField('heroImage', url)} 
                 />
               </div>
             </div>

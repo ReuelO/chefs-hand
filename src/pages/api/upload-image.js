@@ -1,0 +1,81 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+export const prerender = false;
+
+export const POST = async ({ request }) => {
+  try {
+    const { filename, base64Data } = await request.json();
+    
+    if (!filename || !base64Data) {
+      return new Response(JSON.stringify({ error: 'Missing filename or image data' }), { status: 400 });
+    }
+
+    // Clean up filename and put it in uploads directory
+    const cleanFilename = `${Date.now()}-${filename.replace(/[^a-z0-9.-]/gi, '_').toLowerCase()}`;
+    const relativePath = `/uploads/${cleanFilename}`;
+
+    const token = import.meta.env.GITHUB_TOKEN;
+    const owner = import.meta.env.GITHUB_OWNER;
+    const repo = import.meta.env.GITHUB_REPO;
+    const isDev = import.meta.env.DEV;
+
+    // Check if we are running in production/GitHub mode or local mode
+    if (!isDev && token && owner && repo) {
+      // Production Mode: Commit the image directly to the GitHub repo!
+      const filePath = `public/uploads/${cleanFilename}`;
+      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
+
+      const putRes = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'Chefs-Hand-App',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          message: `Media Upload: Add ${cleanFilename} via Generator`,
+          content: base64Data // Must be base64 string
+        })
+      });
+
+      const putData = await putRes.json();
+
+      if (!putRes.ok) {
+        throw new Error(putData.message || 'Failed to upload to GitHub');
+      }
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        url: relativePath,
+        message: 'Image uploaded successfully to GitHub!' 
+      }), { status: 200 });
+
+    } else {
+      // Local Mode: Save to local filesystem in public/uploads/
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      
+      // Ensure the directory exists
+      await fs.mkdir(uploadDir, { recursive: true });
+      
+      const filePath = path.join(uploadDir, cleanFilename);
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      await fs.writeFile(filePath, buffer);
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        url: relativePath,
+        message: 'Image saved locally!' 
+      }), { status: 200 });
+    }
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    return new Response(JSON.stringify({ 
+      error: 'Failed to upload image', 
+      details: error.message 
+    }), { status: 500 });
+  }
+};

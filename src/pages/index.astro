@@ -43,6 +43,9 @@ const { Content: StoryContent } = story ? await render(story) : { Content: null 
 							src="/hero-bg.png" 
 							alt="Artisanal food" 
 							class="w-full h-full object-cover filter contrast-125 saturate-50"
+							fetchpriority="high"
+							loading="eager"
+							decoding="sync"
 						/>
 					</div>
 					{/* Editorial caption */}
@@ -149,6 +152,8 @@ const { Content: StoryContent } = story ? await render(story) : { Content: null 
 									src={recipe.data.heroImage || "/hero-bg.png"} 
 									alt={recipe.data.title} 
 									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out filter contrast-[1.1]" 
+									loading="lazy"
+									decoding="async"
 								/>
 								<div class="absolute top-4 left-4">
 									<span class="bg-base-100 text-base-content text-[10px] font-bold px-3 py-1.5 uppercase tracking-widest border border-base-300">

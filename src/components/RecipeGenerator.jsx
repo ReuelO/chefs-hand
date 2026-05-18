@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import ImageUploader from './ImageUploader';
 
 export default function RecipeGenerator() {
   const [recipe, setRecipe] = useState({
@@ -18,6 +19,46 @@ export default function RecipeGenerator() {
     steps: [''],
     nutrition: { calories: '', protein: '', carbs: '', fat: '' }
   });
+
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const editSlug = params.get('edit');
+    if (editSlug) {
+      setIsEditing(true);
+      fetch(`/api/get-content?collection=recipes&id=${editSlug}`)
+        .then(res => res.json())
+        .then(res => {
+          if (res.success && res.data) {
+            const data = res.data;
+            setRecipe({
+              title: data.title || '',
+              description: data.description || '',
+              heroImage: data.heroImage || '/hero-bg.png',
+              baseServings: data.baseServings || 4,
+              prepTime: data.prepTime || 15,
+              cookTime: data.cookTime || 30,
+              difficulty: data.difficulty || 'easy',
+              cuisine: data.cuisine || '',
+              mealType: data.mealType || 'dinner',
+              cookingMethod: data.cookingMethod || 'stovetop',
+              dietaryTags: Array.isArray(data.dietaryTags) ? data.dietaryTags.join(', ') : '',
+              rating: data.rating || 5,
+              ingredients: data.ingredients && data.ingredients.length > 0 ? data.ingredients : [{ name: '', quantity: 1, unit: '', notes: '' }],
+              steps: data.steps && data.steps.length > 0 ? data.steps : [''],
+              nutrition: {
+                calories: data.nutrition?.calories || '',
+                protein: data.nutrition?.protein || '',
+                carbs: data.nutrition?.carbs || '',
+                fat: data.nutrition?.fat || ''
+              }
+            });
+          }
+        })
+        .catch(err => console.error('Failed to load recipe for editing:', err));
+    }
+  }, []);
 
   const [generatedMd, setGeneratedMd] = useState('');
 
@@ -118,7 +159,14 @@ export default function RecipeGenerator() {
 
       if (response.ok) {
         setSaveStatus('success');
-        setTimeout(() => setSaveStatus(null), 3000);
+        setTimeout(() => {
+          setSaveStatus(null);
+          // Redirect to the hidden admin panel or standard recipes page
+          // If we edited an item, going back to admin panel is best. Otherwise standard page.
+          const params = new URLSearchParams(window.location.search);
+          const isFromAdmin = params.get('admin') === 'true' || params.get('edit');
+          window.location.href = isFromAdmin ? '/admin' : '/recipes';
+        }, 100); // 100ms instant redirect to beat Astro's dev server HMR rebuild reload
       } else {
         throw new Error(result.error || 'Failed to save');
       }
@@ -166,10 +214,10 @@ export default function RecipeGenerator() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Hero Image Path</label>
-              <input 
-                type="text" value={recipe.heroImage} onChange={e => updateField('heroImage', e.target.value)}
-                className="input" placeholder="/hero-bg.png"
+              <label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Hero Image</label>
+              <ImageUploader 
+                imageUrl={recipe.heroImage} 
+                onUploadSuccess={url => updateField('heroImage', url)} 
               />
             </div>
           </div>

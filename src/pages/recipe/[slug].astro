@@ -50,10 +50,6 @@ const jsonLd = {
 	recipeIngredient: recipe.data.ingredients.map(
 		(ing: any) => `${ing.quantity} ${ing.unit} ${ing.name}${ing.notes ? ` (${ing.notes})` : ''}`
 	),
-	recipeInstructions: recipe.data.ingredients.map((ing: any) => ({
-		'@type': 'HowToStep',
-		text: ing.name,
-	})),
 	...(recipe.data.rating && { aggregateRating: {
 		'@type': 'AggregateRating',
 		ratingValue: recipe.data.rating,
@@ -62,7 +58,7 @@ const jsonLd = {
 };
 
 const printUrl = `/recipe/${recipe.id}.print`;
-const recipeUrl = `https://chefshand.com/recipe/${recipe.id}`;
+const recipeUrl = `https://www.chefs-hand.com/recipe/${recipe.id}`;
 const shareText = `Check out this recipe: ${recipe.data.title}`;
 ---
 
