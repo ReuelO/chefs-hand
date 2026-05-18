@@ -34,9 +34,9 @@ export const POST = async (context) => {
              (context.locals?.runtime?.env?.[key]);
     };
 
-    const token = getEnv('GITHUB_TOKEN');
-    const owner = getEnv('GITHUB_OWNER');
-    const repo = getEnv('GITHUB_REPO');
+    const token = getEnv('GITHUB_TOKEN') || request.headers.get('x-github-token');
+    const owner = getEnv('GITHUB_OWNER') || request.headers.get('x-github-owner');
+    const repo = getEnv('GITHUB_REPO') || request.headers.get('x-github-repo');
     const isDev = import.meta.env.DEV;
 
     const fileContentStr = JSON.stringify(preferencesData, null, 2);

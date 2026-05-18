@@ -32,7 +32,7 @@ const { Content: StoryContent } = story ? await render(story) : { Content: null 
 						<span class="italic text-base-content/60">{preferences.featuredTitle.split(' ').slice(-1)[0]}</span>
 					</h1>
 					<p class="text-xl md:text-2xl text-base-content/80 leading-relaxed max-w-lg border-l-4 border-primary pl-6 py-2 font-serif italic">
-						A curated space for home cooks to find inspiration, scale recipes with precision, and master the art of the kitchen.
+						{preferences.homeIntroText || "A curated space for home cooks to find inspiration, scale recipes with precision, and master the art of the kitchen."}
 					</p>
 					<div class="pt-8">
 						<a href="/recipes" class="btn btn-primary">
@@ -43,7 +43,7 @@ const { Content: StoryContent } = story ? await render(story) : { Content: null 
 				<div class="flex-1 w-full relative">
 					<div class="aspect-[3/4] lg:aspect-square relative overflow-hidden">
 						<img 
-							src="/hero-bg.png" 
+							src={preferences.homeHeroImage || "/hero-bg.png"} 
 							alt="Artisanal food" 
 							class="w-full h-full object-cover filter contrast-125 saturate-50"
 							fetchpriority="high"
@@ -53,8 +53,8 @@ const { Content: StoryContent } = story ? await render(story) : { Content: null 
 					</div>
 					{/* Editorial caption */}
 					<div class="absolute -bottom-6 -left-6 bg-base-100 p-6 border border-base-300 max-w-xs hidden lg:block">
-						<p class="text-[10px] font-bold uppercase tracking-widest mb-2 text-primary">Featured Issue</p>
-						<p class="font-serif italic text-lg leading-tight">The perfect balance of butter, salt, and heat.</p>
+						<p class="text-[10px] font-bold uppercase tracking-widest mb-2 text-primary">{preferences.homeHeroCaptionLabel || "Featured Issue"}</p>
+						<p class="font-serif italic text-lg leading-tight">{preferences.homeHeroCaptionText || "The perfect balance of butter, salt, and heat."}</p>
 					</div>
 				</div>
 			</section>

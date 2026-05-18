@@ -32,7 +32,12 @@ export default function ImageUploader({ imageUrl, onUploadSuccess }) {
         
         const response = await fetch('/api/upload-image', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-github-token': localStorage.getItem('admin_github_token') || '',
+            'x-github-owner': localStorage.getItem('admin_github_owner') || '',
+            'x-github-repo': localStorage.getItem('admin_github_repo') || ''
+          },
           body: JSON.stringify({ filename: file.name, base64Data })
         });
 

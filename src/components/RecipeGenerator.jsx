@@ -20,14 +20,38 @@ export default function RecipeGenerator() {
     nutrition: { calories: '', protein: '', carbs: '', fat: '' }
   });
 
+  const [availableAssets, setAvailableAssets] = useState([]);
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
+    // Fetch all uploaded assets from Media Library
+    fetch('/api/get-uploads', {
+      headers: {
+        'x-github-token': localStorage.getItem('admin_github_token') || '',
+        'x-github-owner': localStorage.getItem('admin_github_owner') || '',
+        'x-github-repo': localStorage.getItem('admin_github_repo') || ''
+      }
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success && res.files) {
+          setAvailableAssets(res.files);
+        }
+      })
+      .catch(err => console.error('Failed to load uploads:', err));
+
     const params = new URLSearchParams(window.location.search);
     const editSlug = params.get('edit');
     if (editSlug) {
       setIsEditing(true);
-      fetch(`/api/get-content?collection=recipes&id=${editSlug}`)
+      fetch(`/api/get-content?collection=recipes&id=${editSlug}`, {
+        headers: {
+          'x-github-token': localStorage.getItem('admin_github_token') || '',
+          'x-github-owner': localStorage.getItem('admin_github_owner') || '',
+          'x-github-repo': localStorage.getItem('admin_github_repo') || ''
+        }
+      })
         .then(res => res.json())
         .then(res => {
           if (res.success && res.data) {
@@ -151,7 +175,12 @@ export default function RecipeGenerator() {
       const filename = `${recipe.title.toLowerCase().replace(/\s+/g, '-') || 'recipe'}.md`;
       const response = await fetch('/api/save-content', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-github-token': localStorage.getItem('admin_github_token') || '',
+          'x-github-owner': localStorage.getItem('admin_github_owner') || '',
+          'x-github-repo': localStorage.getItem('admin_github_repo') || ''
+        },
         body: JSON.stringify({ filename, content: frontmatter, collection: 'recipes' })
       });
 
@@ -217,8 +246,44 @@ export default function RecipeGenerator() {
               <label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Hero Image</label>
               <ImageUploader 
                 imageUrl={recipe.heroImage} 
-                onUploadSuccess={url => updateField('heroImage', url)} 
+                onUploadSuccess={url => {
+                  updateField('heroImage', url);
+                  if (!availableAssets.includes(url)) {
+                    setAvailableAssets(prev => [url, ...prev]);
+                  }
+                }} 
               />
+              {availableAssets.length > 0 && (
+                <div className="pt-2">
+                  <button 
+                    type="button"
+                    onClick={() => setShowAssetPicker(!showAssetPicker)}
+                    className="text-[9px] uppercase tracking-wider font-bold text-primary hover:underline focus:outline-none"
+                  >
+                    {showAssetPicker ? 'Hide Library' : 'Or Choose from Library'}
+                  </button>
+                  {showAssetPicker && (
+                    <div className="grid grid-cols-4 gap-2 mt-3 p-3 bg-base-200 border border-base-300 max-h-40 overflow-y-auto">
+                      {availableAssets.map(url => {
+                        const isSelected = recipe.heroImage === url;
+                        return (
+                          <button
+                            key={url}
+                            type="button"
+                            onClick={() => {
+                              updateField('heroImage', url);
+                              setShowAssetPicker(false);
+                            }}
+                            className={`aspect-square relative border overflow-hidden hover:border-primary transition-colors ${isSelected ? 'border-primary ring-1 ring-primary' : 'border-base-300'}`}
+                          >
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="space-y-2">

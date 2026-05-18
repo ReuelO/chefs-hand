@@ -1,6 +1,10 @@
 {
-  "themeColor": "#d4311e",
-  "themeColorDark": "#b82919",
+  "themeColor": "#C8821D",
+  "themeColorDark": "#a36916",
   "brandSubtitle": "A curated kitchen journal for those who find joy in the details of cooking.",
-  "featuredTitle": "Master the technique."
+  "featuredTitle": "Master the technique.",
+  "homeIntroText": "A curated space for home cooks to find inspiration, scale recipes with precision, and master the art of the kitchen.",
+  "homeHeroImage": "/hero-bg.png",
+  "homeHeroCaptionLabel": "Featured Issue",
+  "homeHeroCaptionText": "The perfect balance of butter, salt, and heat."
 }

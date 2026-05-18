@@ -6,6 +6,11 @@ import Footer from '../../components/Footer.astro';
 import { SITE_TITLE } from '../../consts';
 import preferences from '../../data/preferences.json';
 
+// Retrieve build-time GITHUB environment variables to seed client storage
+const buildToken = import.meta.env.GITHUB_TOKEN || '';
+const buildOwner = import.meta.env.GITHUB_OWNER || '';
+const buildRepo = import.meta.env.GITHUB_REPO || '';
+
 // Fetch all content collections on the server-side for maximum speed
 const allRecipes = await getCollection('recipes');
 const allPosts = await getCollection('blog');
@@ -90,6 +95,9 @@ const sortedPosts = allPosts.sort((a, b) => {
           </button>
           <button id="preferencesTab" class="py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer">
             Preferences
+          </button>
+          <button id="assetsTab" class="py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer">
+            Assets / Media
           </button>
         </div>
 
@@ -202,9 +210,32 @@ const sortedPosts = allPosts.sort((a, b) => {
               <textarea id="brandSubtitle" class="input h-24" placeholder="A curated kitchen journal..."></textarea>
             </div>
 
+            <h2 class="text-2xl font-bold font-serif border-b border-base-300 pb-4 pt-4">Homepage Hero Content</h2>
+
             <div class="space-y-2">
-              <label for="featuredTitle" class="block text-xs uppercase tracking-widest font-bold opacity-60">Hero Welcome Title</label>
+              <label for="featuredTitle" class="block text-xs uppercase tracking-widest font-bold opacity-60">Hero Title / Headline</label>
               <input type="text" id="featuredTitle" class="input" placeholder="Master the technique." />
+            </div>
+
+            <div class="space-y-2">
+              <label for="homeIntroText" class="block text-xs uppercase tracking-widest font-bold opacity-60">Hero Intro Description</label>
+              <textarea id="homeIntroText" class="input h-24" placeholder="A curated space for cooks..."></textarea>
+            </div>
+
+            <div class="space-y-2">
+              <label for="homeHeroImage" class="block text-xs uppercase tracking-widest font-bold opacity-60">Hero Background Image URL / Path</label>
+              <input type="text" id="homeHeroImage" class="input font-mono" placeholder="/hero-bg.png" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 pb-2">
+              <div class="space-y-2">
+                <label for="homeHeroCaptionLabel" class="block text-xs uppercase tracking-widest font-bold opacity-60">Hero Image Caption Label</label>
+                <input type="text" id="homeHeroCaptionLabel" class="input" placeholder="Featured Issue" />
+              </div>
+              <div class="space-y-2">
+                <label for="homeHeroCaptionText" class="block text-xs uppercase tracking-widest font-bold opacity-60">Hero Image Caption Italic Text</label>
+                <input type="text" id="homeHeroCaptionText" class="input" placeholder="The perfect balance of butter, salt, and heat." />
+              </div>
             </div>
 
             <div class="pt-4">
@@ -214,21 +245,60 @@ const sortedPosts = allPosts.sort((a, b) => {
             </div>
           </div>
         </div>
+
+        <!-- Assets/Media Library Tab Pane (Hidden by Default) -->
+        <div id="assetsPanel" class="space-y-8 hidden">
+          <div class="border border-base-300 p-8 bg-base-200/10 space-y-6">
+            <h2 class="text-2xl font-bold font-serif border-b border-base-300 pb-4">Upload New Asset</h2>
+            <div class="flex items-center gap-4">
+              <label class="relative inline-block bg-primary text-base-100 font-bold uppercase tracking-widest text-[10px] px-8 py-4 hover:opacity-90 transition-opacity cursor-pointer text-center font-sans">
+                <span id="assetUploadText">Select Image to Upload</span>
+                <input 
+                  type="file" 
+                  id="assetFileInput" 
+                  accept="image/*" 
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                />
+              </label>
+              <p class="text-[10px] text-base-content/40 font-sans uppercase tracking-wider">Max size: 4MB (PNG, JPG, JPEG, WebP, GIF)</p>
+            </div>
+            <div id="uploadError" class="hidden text-xs text-red-600 font-bold uppercase tracking-wider font-sans"></div>
+          </div>
+
+          <div class="space-y-4">
+            <h2 class="text-2xl font-bold font-serif border-b border-base-300 pb-4">Media Library</h2>
+            <div id="assetsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div class="col-span-full py-8 text-center text-base-content/50 font-serif italic">Loading media library...</div>
+            </div>
+          </div>
+        </div>
       </section>
 		</main>
 
 		<Footer />
 
     <!-- Interactive Client JS for Tabs, CRUD Operations, and Settings -->
-    <script define:vars={{ preferences }}>
+    <script define:vars={{ preferences, buildToken, buildOwner, buildRepo }}>
       document.addEventListener('astro:page-load', () => {
+        // Automatically seed/refresh credentials from build-time vars securely
+        if (buildToken) localStorage.setItem('admin_github_token', buildToken);
+        if (buildOwner) localStorage.setItem('admin_github_owner', buildOwner);
+        if (buildRepo) localStorage.setItem('admin_github_repo', buildRepo);
+
         const recipesTab = document.getElementById('recipesTab');
         const blogTab = document.getElementById('blogTab');
         const preferencesTab = document.getElementById('preferencesTab');
+        const assetsTab = document.getElementById('assetsTab');
 
         const recipesPanel = document.getElementById('recipesPanel');
         const blogPanel = document.getElementById('blogPanel');
         const preferencesPanel = document.getElementById('preferencesPanel');
+        const assetsPanel = document.getElementById('assetsPanel');
+
+        const assetsGrid = document.getElementById('assetsGrid');
+        const assetFileInput = document.getElementById('assetFileInput');
+        const assetUploadText = document.getElementById('assetUploadText');
+        const uploadError = document.getElementById('uploadError');
 
         const logoutBtn = document.getElementById('logoutBtn');
 
@@ -237,6 +307,10 @@ const sortedPosts = allPosts.sort((a, b) => {
         const prefColorDarkInput = document.getElementById('themeColorDark');
         const prefSubtitleInput = document.getElementById('brandSubtitle');
         const prefTitleInput = document.getElementById('featuredTitle');
+        const homeIntroTextInput = document.getElementById('homeIntroText');
+        const homeHeroImageInput = document.getElementById('homeHeroImage');
+        const homeHeroCaptionLabelInput = document.getElementById('homeHeroCaptionLabel');
+        const homeHeroCaptionTextInput = document.getElementById('homeHeroCaptionText');
         const savePreferencesBtn = document.getElementById('savePreferencesBtn');
 
         // Prepopulate preferences from server-side definitions
@@ -244,6 +318,10 @@ const sortedPosts = allPosts.sort((a, b) => {
         if (prefColorDarkInput) prefColorDarkInput.value = preferences.themeColorDark;
         if (prefSubtitleInput) prefSubtitleInput.value = preferences.brandSubtitle;
         if (prefTitleInput) prefTitleInput.value = preferences.featuredTitle;
+        if (homeIntroTextInput) homeIntroTextInput.value = preferences.homeIntroText || '';
+        if (homeHeroImageInput) homeHeroImageInput.value = preferences.homeHeroImage || '';
+        if (homeHeroCaptionLabelInput) homeHeroCaptionLabelInput.value = preferences.homeHeroCaptionLabel || '';
+        if (homeHeroCaptionTextInput) homeHeroCaptionTextInput.value = preferences.homeHeroCaptionText || '';
 
         // Color Presets Selection
         document.querySelectorAll('.color-preset-btn').forEach(btn => {
@@ -260,35 +338,34 @@ const sortedPosts = allPosts.sort((a, b) => {
         });
 
         // Tab Navigation Trigger System
-        if (recipesTab && blogTab && preferencesTab && recipesPanel && blogPanel && preferencesPanel) {
-          recipesTab.addEventListener('click', () => {
-            recipesTab.className = 'py-4 px-8 border-b-2 border-primary font-bold uppercase tracking-widest text-xs transition-colors cursor-pointer';
-            blogTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
-            preferencesTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
-            
-            recipesPanel.classList.remove('hidden');
-            blogPanel.classList.add('hidden');
-            preferencesPanel.classList.add('hidden');
-          });
+        if (recipesTab && blogTab && preferencesTab && assetsTab && recipesPanel && blogPanel && preferencesPanel && assetsPanel) {
+          const activateTab = (activeTab, activePanel) => {
+            const tabs = [recipesTab, blogTab, preferencesTab, assetsTab];
+            const panels = [recipesPanel, blogPanel, preferencesPanel, assetsPanel];
 
-          blogTab.addEventListener('click', () => {
-            blogTab.className = 'py-4 px-8 border-b-2 border-primary font-bold uppercase tracking-widest text-xs transition-colors cursor-pointer';
-            recipesTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
-            preferencesTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
-            
-            blogPanel.classList.remove('hidden');
-            recipesPanel.classList.add('hidden');
-            preferencesPanel.classList.add('hidden');
-          });
+            tabs.forEach(t => {
+              if (t === activeTab) {
+                t.className = 'py-4 px-8 border-b-2 border-primary font-bold uppercase tracking-widest text-xs transition-colors cursor-pointer';
+              } else {
+                t.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
+              }
+            });
 
-          preferencesTab.addEventListener('click', () => {
-            preferencesTab.className = 'py-4 px-8 border-b-2 border-primary font-bold uppercase tracking-widest text-xs transition-colors cursor-pointer';
-            recipesTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
-            blogTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
-            
-            preferencesPanel.classList.remove('hidden');
-            recipesPanel.classList.add('hidden');
-            blogPanel.classList.add('hidden');
+            panels.forEach(p => {
+              if (p === activePanel) {
+                p.classList.remove('hidden');
+              } else {
+                p.classList.add('hidden');
+              }
+            });
+          };
+
+          recipesTab.addEventListener('click', () => activateTab(recipesTab, recipesPanel));
+          blogTab.addEventListener('click', () => activateTab(blogTab, blogPanel));
+          preferencesTab.addEventListener('click', () => activateTab(preferencesTab, preferencesPanel));
+          assetsTab.addEventListener('click', () => {
+            activateTab(assetsTab, assetsPanel);
+            loadAssets();
           });
         }
 
@@ -302,13 +379,22 @@ const sortedPosts = allPosts.sort((a, b) => {
               themeColor: prefColorInput.value.trim() || '#d4311e',
               themeColorDark: prefColorDarkInput.value.trim() || '#b82919',
               brandSubtitle: prefSubtitleInput.value.trim() || 'A curated kitchen journal.',
-              featuredTitle: prefTitleInput.value.trim() || 'Master the technique.'
+              featuredTitle: prefTitleInput.value.trim() || 'Master the technique.',
+              homeIntroText: homeIntroTextInput.value.trim() || 'A curated space for home cooks to find inspiration, scale recipes with precision, and master the art of the kitchen.',
+              homeHeroImage: homeHeroImageInput.value.trim() || '/hero-bg.png',
+              homeHeroCaptionLabel: homeHeroCaptionLabelInput.value.trim() || 'Featured Issue',
+              homeHeroCaptionText: homeHeroCaptionTextInput.value.trim() || 'The perfect balance of butter, salt, and heat.'
             };
 
             try {
               const res = await fetch('/api/save-preferences', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'x-github-token': localStorage.getItem('admin_github_token') || '',
+                  'x-github-owner': localStorage.getItem('admin_github_owner') || '',
+                  'x-github-repo': localStorage.getItem('admin_github_repo') || ''
+                },
                 body: JSON.stringify(updatedPrefs)
               });
 
@@ -318,7 +404,7 @@ const sortedPosts = allPosts.sort((a, b) => {
                 alert('Site preferences updated successfully.');
                 window.location.reload();
               } else {
-                throw new Error(result.error || 'Failed to save preferences');
+                throw new Error(result.error || result.details || 'Failed to save preferences');
               }
             } catch (err) {
               alert(`Error saving preferences: ${err.message}`);
@@ -350,7 +436,12 @@ const sortedPosts = allPosts.sort((a, b) => {
 
               try {
                 const res = await fetch(`/api/delete-content?collection=${collection}&id=${id}`, {
-                  method: 'DELETE'
+                  method: 'DELETE',
+                  headers: {
+                    'x-github-token': localStorage.getItem('admin_github_token') || '',
+                    'x-github-owner': localStorage.getItem('admin_github_owner') || '',
+                    'x-github-repo': localStorage.getItem('admin_github_repo') || ''
+                  }
                 });
 
                 const result = await res.json();
@@ -359,7 +450,7 @@ const sortedPosts = allPosts.sort((a, b) => {
                   alert('Content deleted successfully.');
                   window.location.reload();
                 } else {
-                  throw new Error(result.error || 'Failed to delete content');
+                  throw new Error(result.error || result.details || 'Failed to delete content');
                 }
               } catch (err) {
                 alert(`Error: ${err.message}`);
@@ -369,6 +460,175 @@ const sortedPosts = allPosts.sort((a, b) => {
             }
           });
         });
+
+        // Dynamic Media Library Loader
+        const loadAssets = async () => {
+          if (!assetsGrid) return;
+          try {
+            const res = await fetch('/api/get-uploads', {
+              headers: {
+                'x-github-token': localStorage.getItem('admin_github_token') || '',
+                'x-github-owner': localStorage.getItem('admin_github_owner') || '',
+                'x-github-repo': localStorage.getItem('admin_github_repo') || ''
+              }
+            });
+            const data = await res.json();
+            if (data.success && data.files) {
+              if (data.files.length === 0) {
+                assetsGrid.innerHTML = `
+                  <div class="col-span-full py-12 text-center border border-dashed border-base-300 bg-base-200/10 font-serif italic text-base-content/50">
+                    No images uploaded yet. Use the selector above to add assets.
+                  </div>
+                `;
+                return;
+              }
+              
+              assetsGrid.innerHTML = data.files.map(url => {
+                const parts = url.split('/');
+                const filename = parts[parts.length - 1];
+                return `
+                  <div class="border border-base-300 bg-base-200/10 p-3 flex flex-col space-y-3 group relative hover:border-primary transition-colors">
+                    <div class="aspect-square bg-base-300 overflow-hidden relative border border-base-300">
+                      <img src="${url}" alt="${filename}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500" />
+                    </div>
+                    <div class="flex-1 space-y-1">
+                      <p class="text-[10px] font-mono truncate text-base-content/60" title="${filename}">${filename}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-base-300/60 font-sans">
+                      <button data-copy-path="${url}" class="text-[9px] uppercase tracking-wider font-bold py-1.5 bg-base-content text-base-100 hover:opacity-90 transition-opacity text-center cursor-pointer copy-path-btn">Copy Path</button>
+                      <button data-delete-path="${url}" class="text-[9px] uppercase tracking-wider font-bold py-1.5 border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-center cursor-pointer delete-asset-btn">Delete</button>
+                    </div>
+                  </div>
+                `;
+              }).join('');
+
+              // Hook up Copy Path buttons
+              document.querySelectorAll('.copy-path-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                  const path = btn.getAttribute('data-copy-path');
+                  navigator.clipboard.writeText(path).then(() => {
+                    const origText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => { btn.textContent = origText; }, 1500);
+                  });
+                });
+              });
+
+              // Hook up Delete Asset buttons
+              document.querySelectorAll('.delete-asset-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                  const path = btn.getAttribute('data-delete-path');
+                  const filename = path.replace('/uploads/', '');
+                  if (confirm(`Are you sure you want to delete ${filename}?`)) {
+                    btn.textContent = 'Deleting...';
+                    btn.disabled = true;
+                    try {
+                      const res = await fetch(`/api/delete-content?collection=uploads&id=${filename}`, {
+                        method: 'DELETE',
+                        headers: {
+                          'x-github-token': localStorage.getItem('admin_github_token') || '',
+                          'x-github-owner': localStorage.getItem('admin_github_owner') || '',
+                          'x-github-repo': localStorage.getItem('admin_github_repo') || ''
+                        }
+                      });
+                      if (res.ok) {
+                        alert('Asset deleted successfully.');
+                        loadAssets();
+                      } else {
+                        const errData = await res.json();
+                        throw new Error(errData.error || 'Failed to delete asset');
+                      }
+                    } catch (err) {
+                      alert(`Error deleting asset: ${err.message}`);
+                      btn.textContent = 'Delete';
+                      btn.disabled = false;
+                    }
+                  }
+                });
+              });
+            } else {
+              throw new Error(data.error || 'Could not load files');
+            }
+          } catch (err) {
+            assetsGrid.innerHTML = `
+              <div class="col-span-full py-12 text-center text-red-600 font-bold uppercase tracking-wider font-sans">
+                Failed to load library: ${err.message}
+              </div>
+            `;
+          }
+        };
+
+        // Asset File Upload Handling
+        if (assetFileInput) {
+          assetFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+              if (uploadError) {
+                uploadError.textContent = 'Please select a valid image file.';
+                uploadError.classList.remove('hidden');
+              }
+              return;
+            }
+
+            if (file.size > 4 * 1024 * 1024) {
+              if (uploadError) {
+                uploadError.textContent = 'Image size exceeds the 4MB limit.';
+                uploadError.classList.remove('hidden');
+              }
+              return;
+            }
+
+            if (uploadError) uploadError.classList.add('hidden');
+            if (assetUploadText) assetUploadText.textContent = 'Uploading...';
+            assetFileInput.disabled = true;
+
+            try {
+              const reader = new FileReader();
+              reader.readAsDataURL(file);
+              reader.onload = async () => {
+                const base64Data = reader.result.split(',')[1];
+                try {
+                  const res = await fetch('/api/upload-image', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'x-github-token': localStorage.getItem('admin_github_token') || '',
+                      'x-github-owner': localStorage.getItem('admin_github_owner') || '',
+                      'x-github-repo': localStorage.getItem('admin_github_repo') || ''
+                    },
+                    body: JSON.stringify({ filename: file.name, base64Data })
+                  });
+
+                  const result = await res.json();
+                  if (res.ok && result.success) {
+                    if (assetUploadText) assetUploadText.textContent = 'Select Image to Upload';
+                    assetFileInput.disabled = false;
+                    assetFileInput.value = '';
+                    loadAssets();
+                  } else {
+                    throw new Error(result.error || 'Failed to upload asset.');
+                  }
+                } catch (err) {
+                  if (uploadError) {
+                    uploadError.textContent = `Upload Error: ${err.message}`;
+                    uploadError.classList.remove('hidden');
+                  }
+                  if (assetUploadText) assetUploadText.textContent = 'Select Image to Upload';
+                  assetFileInput.disabled = false;
+                }
+              };
+            } catch (err) {
+              if (uploadError) {
+                uploadError.textContent = `File Reader Error: ${err.message}`;
+                uploadError.classList.remove('hidden');
+              }
+              if (assetUploadText) assetUploadText.textContent = 'Select Image to Upload';
+              assetFileInput.disabled = false;
+            }
+          });
+        }
       });
     </script>
 	</body>

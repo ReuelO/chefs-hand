@@ -1,7 +1,7 @@
 export const prerender = false;
 
 export const DELETE = async (context) => {
-  const { url } = context;
+  const { url, request } = context;
 
   try {
     const collection = url.searchParams.get('collection');
@@ -12,7 +12,9 @@ export const DELETE = async (context) => {
     }
 
     const safeId = id.replace(/[^a-z0-9.-]/gi, '_').toLowerCase();
-    const filePath = `src/content/${collection}/${safeId}.md`;
+    const filePath = collection === 'uploads' 
+      ? `public/uploads/${id}` 
+      : `src/content/${collection}/${safeId}.md`;
 
     // Robust environment variable resolution supporting build-time, runtime, and Cloudflare Pages/Workers context
     const getEnv = (key) => {
@@ -21,9 +23,9 @@ export const DELETE = async (context) => {
              (context.locals?.runtime?.env?.[key]);
     };
 
-    const token = getEnv('GITHUB_TOKEN');
-    const owner = getEnv('GITHUB_OWNER');
-    const repo = getEnv('GITHUB_REPO');
+    const token = getEnv('GITHUB_TOKEN') || request.headers.get('x-github-token');
+    const owner = getEnv('GITHUB_OWNER') || request.headers.get('x-github-owner');
+    const repo = getEnv('GITHUB_REPO') || request.headers.get('x-github-repo');
     const isDev = import.meta.env.DEV;
 
     if (!isDev) {
@@ -89,7 +91,9 @@ export const DELETE = async (context) => {
       const fs = await import(/* @vite-ignore */ 'node:fs/promises');
       const path = await import(/* @vite-ignore */ 'node:path');
 
-      const localFilePath = path.join(process.cwd(), 'src', 'content', collection, `${safeId}.md`);
+      const localFilePath = collection === 'uploads'
+        ? path.join(process.cwd(), 'public', 'uploads', id)
+        : path.join(process.cwd(), 'src', 'content', collection, `${safeId}.md`);
       try {
         await fs.unlink(localFilePath);
         return new Response(JSON.stringify({ 
