@@ -3,6 +3,7 @@ import { ClientRouter } from 'astro:transitions';
 // Import the global.css file here so that it is included on
 // all pages through the use of the <BaseHead /> component.
 import '../styles/global.css';
+import preferences from '../data/preferences.json';
 
 interface Props {
 	title: string;
@@ -64,6 +65,13 @@ const { title, description, image = '/blog-placeholder-1.jpg' } = Astro.props;
   // Re-apply theme after Astro view transitions
   document.addEventListener('astro:after-swap', applyTheme);
 </script>
+
+<style is:inline set:html={`
+  :root, html, body {
+    --color-primary: ${preferences.themeColor} !important;
+    --color-primary-dark: ${preferences.themeColorDark} !important;
+  }
+`}></style>
 
 <ClientRouter />
 

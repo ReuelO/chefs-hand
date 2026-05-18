@@ -6,6 +6,8 @@ import Header from '../components/Header.astro';
 import SousChef from '../components/SousChef.jsx';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 
+import preferences from '../data/preferences.json';
+
 const allRecipes = await getCollection('recipes');
 const featuredRecipes = allRecipes.filter(r => r.data.featured).slice(0, 6);
 
@@ -26,7 +28,8 @@ const { Content: StoryContent } = story ? await render(story) : { Content: null 
 				<div class="flex-1 space-y-6">
 					<p class="text-[10px] uppercase tracking-[0.4em] text-primary font-bold">The Home Kitchen</p>
 					<h1 class="text-6xl lg:text-7xl font-bold font-serif leading-[0.9] tracking-tight">
-						Master the <br/><span class="italic text-base-content/60">technique.</span>
+						{preferences.featuredTitle.split(' ').slice(0, -1).join(' ')} <br/>
+						<span class="italic text-base-content/60">{preferences.featuredTitle.split(' ').slice(-1)[0]}</span>
 					</h1>
 					<p class="text-xl md:text-2xl text-base-content/80 leading-relaxed max-w-lg border-l-4 border-primary pl-6 py-2 font-serif italic">
 						A curated space for home cooks to find inspiration, scale recipes with precision, and master the art of the kitchen.

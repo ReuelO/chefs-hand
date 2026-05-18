@@ -4,6 +4,7 @@ import BaseHead from '../../components/BaseHead.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import { SITE_TITLE } from '../../consts';
+import preferences from '../../data/preferences.json';
 
 // Fetch all content collections on the server-side for maximum speed
 const allRecipes = await getCollection('recipes');
@@ -87,6 +88,9 @@ const sortedPosts = allPosts.sort((a, b) => {
           <button id="blogTab" class="py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer">
             Stories ({totalPosts})
           </button>
+          <button id="preferencesTab" class="py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer">
+            Preferences
+          </button>
         </div>
 
         <!-- Recipes Tab Pane (High-End Flex Grid, immune to layout shifts) -->
@@ -147,34 +151,180 @@ const sortedPosts = allPosts.sort((a, b) => {
             ))}
           </div>
         </div>
+
+        <!-- Preferences Tab Pane (Hidden by Default) -->
+        <div id="preferencesPanel" class="hidden animate-entrance">
+          <div class="max-w-xl border border-base-300 bg-base-200/10 p-8 space-y-6">
+            <h2 class="text-2xl font-bold font-serif border-b border-base-300 pb-4">Theme & Style Colors</h2>
+            
+            <div class="space-y-4">
+              <label class="block text-xs uppercase tracking-widest font-bold opacity-60">Accent Theme Preset</label>
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <button type="button" class="color-preset-btn flex flex-col items-center gap-1 border border-base-300 p-3 hover:bg-base-200/50 cursor-pointer" data-color="#d4311e" data-color-dark="#b82919">
+                  <div class="w-6 h-6 rounded-full bg-[#d4311e]"></div>
+                  <span class="text-[8px] uppercase tracking-wider font-bold">Crimson</span>
+                </button>
+                <button type="button" class="color-preset-btn flex flex-col items-center gap-1 border border-base-300 p-3 hover:bg-base-200/50 cursor-pointer" data-color="#2E5A44" data-color-dark="#1f3e2e">
+                  <div class="w-6 h-6 rounded-full bg-[#2E5A44]"></div>
+                  <span class="text-[8px] uppercase tracking-wider font-bold">Sage</span>
+                </button>
+                <button type="button" class="color-preset-btn flex flex-col items-center gap-1 border border-base-300 p-3 hover:bg-base-200/50 cursor-pointer" data-color="#132435" data-color-dark="#0b1621">
+                  <div class="w-6 h-6 rounded-full bg-[#132435]"></div>
+                  <span class="text-[8px] uppercase tracking-wider font-bold">Caviar</span>
+                </button>
+                <button type="button" class="color-preset-btn flex flex-col items-center gap-1 border border-base-300 p-3 hover:bg-base-200/50 cursor-pointer" data-color="#C8821D" data-color-dark="#a36916">
+                  <div class="w-6 h-6 rounded-full bg-[#C8821D]"></div>
+                  <span class="text-[8px] uppercase tracking-wider font-bold">Ochre</span>
+                </button>
+                <button type="button" class="color-preset-btn flex flex-col items-center gap-1 border border-base-300 p-3 hover:bg-base-200/50 cursor-pointer" data-color="#5C253B" data-color-dark="#441a2b">
+                  <div class="w-6 h-6 rounded-full bg-[#5C253B]"></div>
+                  <span class="text-[8px] uppercase tracking-wider font-bold">Plum</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Custom HEX Pickers -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label for="themeColor" class="block text-xs uppercase tracking-widest font-bold opacity-60">Custom Primary HEX</label>
+                <input type="text" id="themeColor" class="input font-mono" placeholder="#d4311e" />
+              </div>
+              <div class="space-y-2">
+                <label for="themeColorDark" class="block text-xs uppercase tracking-widest font-bold opacity-60">Custom Dark HEX (Hover)</label>
+                <input type="text" id="themeColorDark" class="input font-mono" placeholder="#b82919" />
+              </div>
+            </div>
+
+            <h2 class="text-2xl font-bold font-serif border-b border-base-300 pb-4 pt-4">Site Typography & Copy</h2>
+
+            <div class="space-y-2">
+              <label for="brandSubtitle" class="block text-xs uppercase tracking-widest font-bold opacity-60">Footer Brand Subtitle</label>
+              <textarea id="brandSubtitle" class="input h-24" placeholder="A curated kitchen journal..."></textarea>
+            </div>
+
+            <div class="space-y-2">
+              <label for="featuredTitle" class="block text-xs uppercase tracking-widest font-bold opacity-60">Hero Welcome Title</label>
+              <input type="text" id="featuredTitle" class="input" placeholder="Master the technique." />
+            </div>
+
+            <div class="pt-4">
+              <button id="savePreferencesBtn" class="w-full btn btn-primary py-4 font-bold text-center justify-center">
+                Save Preferences
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
 		</main>
 
 		<Footer />
 
-    <!-- Interactive Client JS for Tabs and CRUD Operations (Bundled correctly for View Transitions) -->
-    <script>
-      // Wrap script in astro:page-load event listener so it is re-evaluated after ViewTransition navigations
+    <!-- Interactive Client JS for Tabs, CRUD Operations, and Settings -->
+    <script define:vars={{ preferences }}>
       document.addEventListener('astro:page-load', () => {
         const recipesTab = document.getElementById('recipesTab');
         const blogTab = document.getElementById('blogTab');
+        const preferencesTab = document.getElementById('preferencesTab');
+
         const recipesPanel = document.getElementById('recipesPanel');
         const blogPanel = document.getElementById('blogPanel');
+        const preferencesPanel = document.getElementById('preferencesPanel');
+
         const logoutBtn = document.getElementById('logoutBtn');
 
-        if (recipesTab && blogTab && recipesPanel && blogPanel) {
+        // Form Inputs for Preferences
+        const prefColorInput = document.getElementById('themeColor');
+        const prefColorDarkInput = document.getElementById('themeColorDark');
+        const prefSubtitleInput = document.getElementById('brandSubtitle');
+        const prefTitleInput = document.getElementById('featuredTitle');
+        const savePreferencesBtn = document.getElementById('savePreferencesBtn');
+
+        // Prepopulate preferences from server-side definitions
+        if (prefColorInput) prefColorInput.value = preferences.themeColor;
+        if (prefColorDarkInput) prefColorDarkInput.value = preferences.themeColorDark;
+        if (prefSubtitleInput) prefSubtitleInput.value = preferences.brandSubtitle;
+        if (prefTitleInput) prefTitleInput.value = preferences.featuredTitle;
+
+        // Color Presets Selection
+        document.querySelectorAll('.color-preset-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const color = btn.getAttribute('data-color');
+            const colorDark = btn.getAttribute('data-color-dark');
+            if (prefColorInput) prefColorInput.value = color;
+            if (prefColorDarkInput) prefColorDarkInput.value = colorDark;
+            
+            // Visual feedback on selected preset
+            document.querySelectorAll('.color-preset-btn').forEach(b => b.classList.remove('border-primary'));
+            btn.classList.add('border-primary');
+          });
+        });
+
+        // Tab Navigation Trigger System
+        if (recipesTab && blogTab && preferencesTab && recipesPanel && blogPanel && preferencesPanel) {
           recipesTab.addEventListener('click', () => {
             recipesTab.className = 'py-4 px-8 border-b-2 border-primary font-bold uppercase tracking-widest text-xs transition-colors cursor-pointer';
             blogTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
+            preferencesTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
+            
             recipesPanel.classList.remove('hidden');
             blogPanel.classList.add('hidden');
+            preferencesPanel.classList.add('hidden');
           });
 
           blogTab.addEventListener('click', () => {
             blogTab.className = 'py-4 px-8 border-b-2 border-primary font-bold uppercase tracking-widest text-xs transition-colors cursor-pointer';
             recipesTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
+            preferencesTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
+            
             blogPanel.classList.remove('hidden');
             recipesPanel.classList.add('hidden');
+            preferencesPanel.classList.add('hidden');
+          });
+
+          preferencesTab.addEventListener('click', () => {
+            preferencesTab.className = 'py-4 px-8 border-b-2 border-primary font-bold uppercase tracking-widest text-xs transition-colors cursor-pointer';
+            recipesTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
+            blogTab.className = 'py-4 px-8 border-b-2 border-transparent text-base-content/50 font-bold uppercase tracking-widest text-xs transition-colors hover:text-base-content cursor-pointer';
+            
+            preferencesPanel.classList.remove('hidden');
+            recipesPanel.classList.add('hidden');
+            blogPanel.classList.add('hidden');
+          });
+        }
+
+        // Save Preferences Action
+        if (savePreferencesBtn) {
+          savePreferencesBtn.addEventListener('click', async () => {
+            savePreferencesBtn.textContent = 'Saving Preferences...';
+            savePreferencesBtn.disabled = true;
+
+            const updatedPrefs = {
+              themeColor: prefColorInput.value.trim() || '#d4311e',
+              themeColorDark: prefColorDarkInput.value.trim() || '#b82919',
+              brandSubtitle: prefSubtitleInput.value.trim() || 'A curated kitchen journal.',
+              featuredTitle: prefTitleInput.value.trim() || 'Master the technique.'
+            };
+
+            try {
+              const res = await fetch('/api/save-preferences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedPrefs)
+              });
+
+              const result = await res.json();
+
+              if (res.ok && result.success) {
+                alert('Site preferences updated successfully.');
+                window.location.reload();
+              } else {
+                throw new Error(result.error || 'Failed to save preferences');
+              }
+            } catch (err) {
+              alert(`Error saving preferences: ${err.message}`);
+              savePreferencesBtn.textContent = 'Save Preferences';
+              savePreferencesBtn.disabled = false;
+            }
           });
         }
 

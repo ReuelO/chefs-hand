@@ -1,5 +1,6 @@
 ---
 const today = new Date();
+import preferences from '../data/preferences.json';
 ---
 
 <footer class="bg-base-100 py-24 border-t border-base-300 mt-auto">
@@ -11,7 +12,7 @@ const today = new Date();
 					<h2 class="text-xl font-bold font-serif uppercase tracking-[0.3em] text-base-content">Chef's Hand</h2>
 				</div>
 				<p class="text-base-content/60 max-w-sm leading-relaxed font-serif italic">
-					A curated kitchen journal for those who find joy in the details of cooking.
+					{preferences.brandSubtitle}
 				</p>
 			</div>
 			

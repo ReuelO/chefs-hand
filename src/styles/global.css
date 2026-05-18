@@ -23,13 +23,13 @@
 }
 
 /* ============================================
-   DARK MODE
+   DARK MODE (Deep high-contrast Pitch Black)
    ============================================ */
 html[data-theme='dark'] {
-  --color-base-100:     #0f0f0e;
-  --color-base-200:     #1a1a18;
-  --color-base-300:     #2e2e2a;
-  --color-base-content: #f0f0ec;
+  --color-base-100:     #000000;
+  --color-base-200:     #0c0c0c;
+  --color-base-300:     #1a1a1a;
+  --color-base-content: #ffffff;
 }
 
 /* ============================================
